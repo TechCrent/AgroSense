@@ -22,8 +22,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 ANTHROPIC_API_KEY = config('CLAUDE_API_KEY')
 PLANT_DETECTION_API_KEY = config('PLANT_DETECTION_API_KEY')
-PLANT_API_URL= config('PLANT_API_URL')
+PLANT_API_URL = config('PLANT_API_URL', default='https://api.plant.id/v3')
 PLANT_HEALTH_API_KEY = config('PLANTHEALTH_API_KEY')
+CROP_API_URL = config('PLANTHEALTH_API_URL', default='https://crop.kindwise.com/api/v1')
 
 
 # SECURITY WARNING: don't run with debug turned on in production!
