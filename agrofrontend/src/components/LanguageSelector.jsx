@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useId } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useId } from 'react'
 import { ChevronDown, Check, Languages } from 'lucide-react'
 import { APP_LANG_CODES, langLabel } from '../i18n/langCodes.js'
 
@@ -28,7 +28,9 @@ export default function LanguageSelector({
   className = '',
 }) {
   const [open, setOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState(null)
   const rootRef = useRef(null)
+  const triggerRef = useRef(null)
   const uid = useId()
   const triggerId = `lang-trigger-${uid}`
   const listboxId = `lang-list-${uid}`
@@ -36,7 +38,41 @@ export default function LanguageSelector({
   const currentCode = APP_LANG_CODES.includes(lang) ? lang : 'en'
   const currentLabel = langLabel(t, currentCode)
 
-  const close = useCallback(() => setOpen(false), [])
+  const close = useCallback(() => {
+    setOpen(false)
+    setMenuPos(null)
+  }, [])
+
+  const isSettings = variant === 'settings'
+
+  const updateMenuPosition = useCallback(() => {
+    const el = triggerRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const vw = window.innerWidth
+    const maxW = Math.min(vw - 16, 288)
+    const width = maxW
+    const left = Math.min(Math.max(8, r.right - width), vw - width - 8)
+    setMenuPos({ top: r.bottom + 8, left, width })
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!open || !isSettings) {
+      setMenuPos(null)
+      return
+    }
+    updateMenuPosition()
+    const col = document.querySelector('.app-column')
+    const onMove = () => updateMenuPosition()
+    window.addEventListener('resize', onMove)
+    col?.addEventListener('scroll', onMove, { passive: true })
+    document.addEventListener('scroll', onMove, { capture: true, passive: true })
+    return () => {
+      window.removeEventListener('resize', onMove)
+      col?.removeEventListener('scroll', onMove)
+      document.removeEventListener('scroll', onMove, { capture: true })
+    }
+  }, [open, isSettings, updateMenuPosition])
 
   useEffect(() => {
     function handlePointer(e) {
@@ -64,8 +100,6 @@ export default function LanguageSelector({
     close()
   }
 
-  const isSettings = variant === 'settings'
-
   const triggerClass = isSettings
     ? `
       w-full min-w-[10.5rem] max-w-[14rem] sm:max-w-[16rem] justify-between
@@ -79,6 +113,7 @@ export default function LanguageSelector({
   return (
     <div ref={rootRef} className={`relative inline-flex shrink-0 ${className}`}>
       <button
+        ref={triggerRef}
         type="button"
         id={triggerId}
         aria-haspopup="listbox"
@@ -119,17 +154,28 @@ export default function LanguageSelector({
         />
       </button>
 
-      {open && (
+      {open && (!isSettings || menuPos) && (
         <div
           className={`
-            absolute z-[60] mt-2 max-h-[min(60vh,22rem)] w-[min(calc(100vw-2.5rem),18rem)]
-            overflow-hidden rounded-2xl border border-ag-border bg-ag-surface
+            max-h-[min(60vh,22rem)] overflow-hidden rounded-2xl border border-ag-border bg-ag-surface
             py-2 shadow-[0_8px_32px_rgba(0,0,0,0.12)]
             dark:border-[#2a3d34] dark:bg-[#141c19] dark:shadow-[0_12px_40px_rgba(0,0,0,0.45)]
             animate-fade-up opacity-0 [animation-fill-mode:forwards]
-            right-0
+            ${isSettings
+              ? 'fixed z-[200]'
+              : 'absolute z-[60] right-0 mt-2 w-[min(calc(100vw-2.5rem),18rem)]'
+            }
           `}
-          style={{ animationDuration: '0.2s' }}
+          style={
+            isSettings && menuPos
+              ? {
+                  top: menuPos.top,
+                  left: menuPos.left,
+                  width: menuPos.width,
+                  animationDuration: '0.2s',
+                }
+              : { animationDuration: '0.2s' }
+          }
         >
           <div className="max-h-[min(60vh,21rem)] overflow-y-auto overscroll-contain px-1.5 pb-1">
             <p id={`${listboxId}-label`} className="px-3 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-widest text-ag-text-3">

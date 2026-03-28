@@ -21,7 +21,7 @@ export default function BottomNav({ t }) {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 mx-auto max-w-md md:hidden"
-      aria-label="Main navigation"
+      aria-label={t.nav_aria_main}
     >
       <div className="bg-white/90 dark:bg-[#141c19]/90 backdrop-blur-xl border-t border-ag-border dark:border-[#2a3d34] shadow-[0_-2px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_24px_rgba(0,0,0,0.35)] px-2 py-2">
         <div className="flex justify-around">

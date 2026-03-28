@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import {
   Leaf,
@@ -8,12 +9,23 @@ import {
   Clock,
   Check,
 } from 'lucide-react'
+import { useLocale } from '../hooks/useLocale.js'
+import { langLabel } from '../i18n/langCodes.js'
+
+const RIGHT_PANEL_LANG_CODES = ['en', 'zu', 'xh', 'swh', 'sot', 'afr']
 
 export default function RightPanel() {
   const { pathname } = useLocation()
+  const { t } = useLocale()
+  const scrollRef = useRef(null)
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [pathname])
 
   const wrap = (content) => (
     <div
+      ref={scrollRef}
       className="hidden h-screen min-w-0 flex-1 flex-col justify-center overflow-y-auto px-10 py-16 md:flex lg:px-16"
     >
       <div className="mx-auto w-full max-w-xl opacity-0 animate-fade-up [animation-fill-mode:forwards]">
@@ -27,26 +39,21 @@ export default function RightPanel() {
       <div className="space-y-6">
         <div>
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-[#8FA89D] dark:text-[#9ca8a3]">
-            Your Diagnosis
+            {t.rightpanel_result_kicker}
           </p>
           <h2 className="text-3xl font-bold leading-tight tracking-tight text-[#0F1F17] dark:text-[#e8ece9] lg:text-4xl">
-            Here&apos;s what we found.
+            {t.rightpanel_result_title}
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-[#4A5E54] dark:text-[#9ca8a3] lg:text-base">
-            Review your plant&apos;s health status and follow the recommended steps below.
+            {t.rightpanel_result_desc}
           </p>
         </div>
         <div className="rounded-3xl bg-ag-surface p-6 shadow-[0_2px_16px_rgba(0,0,0,0.07)] dark:bg-[#141c19] dark:shadow-none">
           <p className="mb-4 text-sm font-bold text-[#0F1F17] dark:text-[#e8ece9]">
-            Pro Tips
+            {t.rightpanel_pro_tips}
           </p>
           <div className="space-y-3">
-            {[
-              'Take photos in natural daylight for best results',
-              'Focus on affected leaves or stems',
-              'Scan weekly to monitor plant recovery',
-              'Share results with your local agronomist',
-            ].map((tip, i) => (
+            {[t.rightpanel_tip_1, t.rightpanel_tip_2, t.rightpanel_tip_3, t.rightpanel_tip_4].map((tip, i) => (
               <div key={i} className="flex items-start gap-3">
                 <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#F0FFF4] dark:bg-[#1a2e24]">
                   <Check size={10} color="#2D6A4F" strokeWidth={3} aria-hidden />
@@ -67,27 +74,27 @@ export default function RightPanel() {
       <div className="space-y-6">
         <div>
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-[#8FA89D] dark:text-[#9ca8a3]">
-            Scan History
+            {t.rightpanel_history_kicker}
           </p>
           <h2 className="text-3xl font-bold leading-tight tracking-tight text-[#0F1F17] dark:text-[#e8ece9] lg:text-4xl">
-            Track your plants
-            <span className="text-[#2D6A4F]"> over time.</span>
+            {t.rightpanel_history_title}
+            <span className="text-[#2D6A4F]">{t.rightpanel_history_title_accent}</span>
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-[#4A5E54] dark:text-[#9ca8a3] lg:text-base">
-            Your last 20 scans are saved automatically. Tap any entry to review the full diagnosis.
+            {t.rightpanel_history_desc}
           </p>
         </div>
         <div className="space-y-3">
           {[
             {
               icon: <HistoryIcon size={18} color="#2D6A4F" strokeWidth={1.75} />,
-              title: 'Auto-saved',
-              body: 'Every scan is saved locally on your device',
+              title: t.rightpanel_history_auto_title,
+              body: t.rightpanel_history_auto_body,
             },
             {
               icon: <Clock size={18} color="#2D6A4F" strokeWidth={1.75} />,
-              title: 'Up to 20 scans',
-              body: 'Oldest entries are removed automatically',
+              title: t.rightpanel_history_limit_title,
+              body: t.rightpanel_history_limit_body,
             },
           ].map((f) => (
             <div
@@ -113,27 +120,29 @@ export default function RightPanel() {
       <div className="space-y-6">
         <div>
           <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-[#8FA89D] dark:text-[#9ca8a3]">
-            Preferences
+            {t.settings_section_preferences}
           </p>
           <h2 className="text-3xl font-bold leading-tight tracking-tight text-[#0F1F17] dark:text-[#e8ece9] lg:text-4xl">
-            Make it
-            <span className="text-[#2D6A4F]"> yours.</span>
+            {t.rightpanel_settings_title}
+            <span className="text-[#2D6A4F]">{t.rightpanel_settings_title_accent}</span>
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-[#4A5E54] dark:text-[#9ca8a3] lg:text-base">
-            Set your language and preferences. Settings are saved automatically to your device.
+            {t.rightpanel_settings_desc}
           </p>
         </div>
         <div className="rounded-3xl bg-ag-surface p-6 shadow-[0_2px_16px_rgba(0,0,0,0.07)] dark:bg-[#141c19]">
-          <p className="mb-1 text-sm font-bold text-[#0F1F17] dark:text-[#e8ece9]">Supported Languages</p>
-          <p className="mb-4 text-xs text-[#8FA89D] dark:text-[#9ca8a3]">UI and AI diagnosis translation</p>
+          <p className="mb-1 text-sm font-bold text-[#0F1F17] dark:text-[#e8ece9]">{t.rightpanel_supported_langs_title}</p>
+          <p className="mb-4 text-xs text-[#8FA89D] dark:text-[#9ca8a3]">{t.rightpanel_supported_langs_sub}</p>
           <div className="grid grid-cols-2 gap-2">
-            {['English', 'Zulu', 'Xhosa', 'Swahili', 'Sesotho', 'Afrikaans'].map((lang) => (
+            {RIGHT_PANEL_LANG_CODES.map((code) => (
               <div
-                key={lang}
+                key={code}
                 className="flex items-center gap-2 rounded-xl bg-[#F7FAF8] px-3 py-2 dark:bg-[#1a2320]"
               >
                 <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#52B788]" />
-                <span className="text-xs font-medium text-[#0F1F17] dark:text-[#e8ece9]">{lang}</span>
+                <span className="text-xs font-medium text-[#0F1F17] dark:text-[#e8ece9]">
+                  {langLabel(t, code)}
+                </span>
               </div>
             ))}
           </div>
@@ -142,28 +151,27 @@ export default function RightPanel() {
     )
   }
 
-  /* Home and selection (/) */
   return wrap(
     <div className="space-y-8">
       <div>
         <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#D8F3DC] px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-[#2D6A4F] dark:bg-[#1a2e24] dark:text-ag-green-400">
           <Leaf size={12} color="#2D6A4F" strokeWidth={2} aria-hidden />
-          AI-Powered Diagnosis
+          {t.rightpanel_badge}
         </div>
         <h2 className="text-3xl font-bold leading-tight tracking-tight text-[#0F1F17] dark:text-[#e8ece9] lg:text-4xl">
-          Identify plant diseases
-          <span className="text-[#2D6A4F]"> instantly.</span>
+          {t.rightpanel_home_title}
+          <span className="text-[#2D6A4F]">{t.rightpanel_home_title_accent}</span>
         </h2>
         <p className="mt-4 text-base leading-relaxed text-[#4A5E54] dark:text-[#9ca8a3] lg:text-lg">
-          Upload a photo of any plant and get an AI-powered health diagnosis in under 8 seconds.
+          {t.rightpanel_home_desc}
         </p>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
         {[
-          { value: '500K+', label: 'Plant samples' },
-          { value: '98.4%', label: 'Accuracy' },
-          { value: '10+', label: 'Languages' },
+          { value: '500K+', label: t.rightpanel_stat_plant_samples },
+          { value: '98.4%', label: t.rightpanel_stat_accuracy },
+          { value: '10+', label: t.rightpanel_stat_languages },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -179,18 +187,18 @@ export default function RightPanel() {
         {[
           {
             icon: <Microscope size={18} color="#2D6A4F" strokeWidth={1.75} />,
-            title: 'Laboratory Precision',
-            body: 'Trained on 500,000+ verified pathological samples',
+            title: t.lab_precision_title,
+            body: t.lab_precision_body,
           },
           {
             icon: <Lightbulb size={18} color="#2D6A4F" strokeWidth={1.75} />,
-            title: 'Expert Insights',
-            body: 'Organic treatment and prevention recommendations',
+            title: t.expert_insights_title,
+            body: t.expert_insights_body,
           },
           {
             icon: <Globe size={18} color="#2D6A4F" strokeWidth={1.75} />,
-            title: 'African Languages',
-            body: 'Diagnosis in Zulu, Xhosa, Swahili and more',
+            title: t.rightpanel_feature_langs_title,
+            body: t.rightpanel_feature_langs_body,
           },
         ].map((f) => (
           <div key={f.title} className="flex items-start gap-4">

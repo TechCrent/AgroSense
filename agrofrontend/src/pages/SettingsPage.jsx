@@ -72,7 +72,7 @@ export default function SettingsPage({ t, lang, setLang, theme, setTheme }) {
         <p className="text-[10px] font-semibold uppercase tracking-widest text-ag-text-3 px-1 mb-2 mt-4">
           {t.settings_section_preferences}
         </p>
-        <section className="bg-ag-surface dark:bg-[#141c19] rounded-3xl shadow-[0_2px_16px_rgba(0,0,0,0.07)] border border-ag-border overflow-hidden">
+        <section className="bg-ag-surface dark:bg-[#141c19] rounded-3xl shadow-[0_2px_16px_rgba(0,0,0,0.07)] border border-ag-border overflow-visible">
           <div className="px-5 py-4 flex items-center gap-4 border-b border-[#F5F5F5] dark:border-[#2a3d34] last:border-0">
             <div className="w-9 h-9 rounded-xl bg-ag-green-50 dark:bg-[#1a2e24] flex items-center justify-center flex-shrink-0">
               <Globe size={18} color="#2D6A4F" strokeWidth={1.75} />
