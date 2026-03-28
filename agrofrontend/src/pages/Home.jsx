@@ -11,7 +11,7 @@ export default function Home({
 }) {
   return (
     <div className="min-h-screen bg-[#F8FFF9]">
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg mx-auto animate-fadeIn">
 
         {/* Navbar */}
         <nav className="bg-white shadow-sm px-4 py-3 flex items-center justify-between">
@@ -20,7 +20,7 @@ export default function Home({
         </nav>
 
         {/* Hero */}
-        <div className="pt-8 pb-4 px-4 text-center">
+        <div className="pt-8 md:pt-12 pb-4 px-4 text-center">
           <h1 className="text-2xl font-bold text-[#2D6A4F]">{t.tagline}</h1>
           <p className="text-sm text-[#555F61] mt-1">AI-powered plant health diagnosis</p>
         </div>

@@ -20,6 +20,7 @@ export default function App() {
   const [screen, setScreen] = useState('upload')
   const [loadingStep, setLoadingStep] = useState(0)
   const [error, setError] = useState(null)
+  const [translating, setTranslating] = useState(false)
 
   // Drive URL from screen state
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function App() {
     setScreen('upload')
     setLoadingStep(0)
     setError(null)
+    setTranslating(false)
   }
 
   async function handleScan() {
@@ -53,6 +55,12 @@ export default function App() {
     try {
       const { data } = await scanPlant(imageFile)
       const list = data.candidates
+
+      if (!list || list.length === 0) {
+        setError(t.error_no_results)
+        setScreen('upload')
+        return
+      }
 
       if (list.length === 1 && list[0].confidence > 0.90) {
         setCandidates(list)
@@ -89,6 +97,32 @@ export default function App() {
     }
   }
 
+  async function translateResult(targetLang) {
+    if (!result) return
+    setTranslating(true)
+
+    if (DEV_MODE) {
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // In dev mode keep the same mock content but tag the target language
+      setResult((prev) => ({
+        ...prev,
+        diagnosis: { ...prev.diagnosis, language: targetLang },
+      }))
+      setTranslating(false)
+      return
+    }
+
+    try {
+      const plant = selectedPlant ?? result.plant
+      const { data } = await confirmPlant(imageFile, plant.common_name, targetLang)
+      setResult(data)
+    } catch {
+      // silently keep existing result on failure
+    } finally {
+      setTranslating(false)
+    }
+  }
+
   const sharedProps = {
     t, lang, setLang,
     imageFile, setImageFile,
@@ -99,29 +133,42 @@ export default function App() {
     screen, setScreen,
     loadingStep, setLoadingStep,
     error, setError,
+    translating,
+    translateResult,
     resetAll,
     handleScan,
     handleConfirm,
   }
 
-  // Sub-screen rendered at '/'
-  function MainFlow() {
-    let content
-    if (screen === 'selection') content = <SelectionScreen {...sharedProps} />
-    else                        content = <Home {...sharedProps} />
-
-    return (
-      <>
-        {content}
-        {screen === 'loading' && <LoadingScreen t={t} loadingStep={loadingStep} />}
-      </>
-    )
-  }
+  const mainContent = screen === 'selection'
+    ? <SelectionScreen {...sharedProps} />
+    : <Home {...sharedProps} />
 
   return (
     <Routes>
-      <Route path="/" element={<MainFlow />} />
-      <Route path="/result" element={<Result t={t} lang={lang} result={result} imagePreview={imagePreview} resetAll={resetAll} />} />
+      <Route
+        path="/"
+        element={
+          <>
+            {mainContent}
+            {screen === 'loading' && <LoadingScreen t={t} loadingStep={loadingStep} />}
+          </>
+        }
+      />
+      <Route
+        path="/result"
+        element={
+          <Result
+            t={t}
+            lang={lang}
+            result={result}
+            imagePreview={imagePreview}
+            translating={translating}
+            translateResult={translateResult}
+            resetAll={resetAll}
+          />
+        }
+      />
     </Routes>
   )
 }

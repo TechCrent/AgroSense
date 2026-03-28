@@ -1,19 +1,23 @@
 import StatusBadge from '../components/StatusBadge.jsx'
+import TranslateBar from '../components/TranslateBar.jsx'
 
 const LANG_LABELS = {
-  en: 'English', zu: 'Zulu', xh: 'Xhosa',
-  swh: 'Swahili', sot: 'Sesotho', afr: 'Afrikaans',
+  en: 'English', twi: 'Twi', ga: 'Ga', ewe: 'Ewe',
+  fante: 'Fante', dagbani: 'Dagbani', gurene: 'Gurene',
+  yoruba: 'Yoruba', kikuyu: 'Kikuyu', luo: 'Luo', kimeru: 'Kimeru',
 }
 
-export default function Result({ t, lang, result, imagePreview, resetAll }) {
+export default function Result({ t, lang, result, imagePreview, translating, translateResult, resetAll }) {
   if (!result) return null
 
   const { plant, health, diagnosis } = result
   const isInfected = health.status === 'infected'
+  // diagnosis.language tracks what language the content is currently in
+  const diagnosisLang = diagnosis.language ?? 'en'
 
   return (
     <div className="bg-[#F8FFF9] min-h-screen">
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg mx-auto animate-fadeIn">
 
         {/* Navbar */}
         <nav className="bg-white shadow-sm px-4 py-3 flex items-center justify-between">
@@ -31,10 +35,10 @@ export default function Result({ t, lang, result, imagePreview, resetAll }) {
             <div className="bg-[#F0FFF4] h-48 flex items-center justify-center text-6xl">🌿</div>
           )}
           <div className="bg-white px-4 py-4">
-            <p className="text-2xl font-bold text-[#1B1B1B]">{plant.common_name}</p>
-            <p className="text-sm italic text-[#555F61]">{plant.name}</p>
+            <p className="text-2xl font-bold text-[#1B1B1B] truncate">{plant.common_name}</p>
+            <p className="text-sm italic text-[#555F61] line-clamp-2">{plant.name}</p>
             <p className="text-xs text-[#555F61] mt-1">
-              Plant match: {Math.round(plant.confidence * 100)}%
+              {t.confidence_label}: {Math.round(plant.confidence * 100)}%
             </p>
             <div className="mt-3 flex justify-center">
               <StatusBadge status={health.status} t={t} />
@@ -45,59 +49,80 @@ export default function Result({ t, lang, result, imagePreview, resetAll }) {
         {/* Diagnosis section */}
         <div className="mx-4 mt-4">
 
-          {isInfected ? (
-            <>
-              {/* Disease info card */}
-              <div className="bg-white rounded-2xl shadow-sm p-4 mb-3">
-                <p className="text-xs font-semibold uppercase tracking-widest text-[#555F61]">
-                  {t.disease_label}
-                </p>
-                <p className="text-xl font-bold text-[#E63946] mt-1">{health.disease_name}</p>
-                <span className="inline-block mt-2 rounded-full bg-red-100 text-red-700 text-xs font-semibold px-3 py-1">
-                  {health.disease_type}
-                </span>
-                <p className="text-sm text-[#555F61] mt-2">
-                  {t.confidence_label}: {Math.round(health.confidence * 100)}%
-                </p>
-              </div>
+          {/* Translate bar */}
+          <TranslateBar
+            translating={translating}
+            translateResult={translateResult}
+            diagnosisLang={diagnosisLang}
+          />
 
-              {/* Summary card */}
-              <div className="bg-white rounded-2xl shadow-sm p-4 mb-3">
-                <p className="text-sm text-[#1B1B1B] leading-relaxed">{diagnosis.summary}</p>
-              </div>
+          {/* Content with translating overlay */}
+          <div className={`relative transition-opacity duration-300 ${translating ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
 
-              {/* Treatment steps card */}
-              <div className="bg-white rounded-2xl shadow-sm p-4">
-                <p className="font-bold text-[#2D6A4F] text-base mb-3">{t.result_treatment}</p>
-                {diagnosis.steps.map((step, i) => (
-                  <div key={i} className="flex gap-3 mb-3 items-start">
-                    <div className="w-6 h-6 rounded-full bg-[#2D6A4F] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
-                      {i + 1}
+            {/* Translating spinner overlay */}
+            {translating && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3">
+                <div className="w-10 h-10 border-4 border-[#D8E8DF] border-t-[#2D6A4F] rounded-full animate-spin" />
+                <p className="text-sm font-medium text-[#2D6A4F]">Translating...</p>
+              </div>
+            )}
+
+            {isInfected ? (
+              <>
+                {/* Disease info card */}
+                <div className="bg-white rounded-2xl shadow-sm p-4 mb-3">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[#555F61]">
+                    {t.disease_label}
+                  </p>
+                  <p className="text-xl font-bold text-[#E63946] mt-1">{health.disease_name}</p>
+                  {health.disease_type && (
+                    <span className="inline-block mt-2 rounded-full bg-red-100 text-red-700 text-xs font-semibold px-3 py-1">
+                      {health.disease_type}
+                    </span>
+                  )}
+                  <p className="text-sm text-[#555F61] mt-2">
+                    {t.confidence_label}: {Math.round(health.confidence * 100)}%
+                  </p>
+                </div>
+
+                {/* Summary card */}
+                <div className="bg-white rounded-2xl shadow-sm p-4 mb-3">
+                  <p className="text-sm text-[#1B1B1B] leading-relaxed">{diagnosis.summary}</p>
+                </div>
+
+                {/* Treatment steps card */}
+                <div className="bg-white rounded-2xl shadow-sm p-4">
+                  <p className="font-bold text-[#2D6A4F] text-base mb-3">{t.result_treatment}</p>
+                  {diagnosis.steps.map((step, i) => (
+                    <div key={i} className="flex gap-3 mb-3 items-start last:mb-0">
+                      <div className="w-6 h-6 rounded-full bg-[#2D6A4F] text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                        {i + 1}
+                      </div>
+                      <p className="text-sm text-[#1B1B1B] leading-relaxed">{step}</p>
                     </div>
-                    <p className="text-sm text-[#1B1B1B] leading-relaxed">{step}</p>
-                  </div>
-                ))}
-              </div>
-            </>
-          ) : (
-            <>
-              {/* Summary card */}
-              <div className="bg-white rounded-2xl shadow-sm p-4 mb-3">
-                <p className="text-sm text-[#1B1B1B] leading-relaxed">{diagnosis.summary}</p>
-              </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Summary card */}
+                <div className="bg-white rounded-2xl shadow-sm p-4 mb-3">
+                  <p className="text-sm text-[#1B1B1B] leading-relaxed">{diagnosis.summary}</p>
+                </div>
 
-              {/* Prevention card */}
-              <div className="bg-white rounded-2xl shadow-sm p-4">
-                <p className="font-bold text-[#2D6A4F] text-base mb-3">{t.result_prevention}</p>
-                {diagnosis.steps.map((step, i) => (
-                  <div key={i} className="flex gap-2 mb-3 items-start">
-                    <span className="text-base flex-shrink-0">🌿</span>
-                    <p className="text-sm text-[#1B1B1B] leading-relaxed">{step}</p>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+                {/* Prevention card */}
+                <div className="bg-white rounded-2xl shadow-sm p-4">
+                  <p className="font-bold text-[#2D6A4F] text-base mb-3">{t.result_prevention}</p>
+                  {diagnosis.steps.map((step, i) => (
+                    <div key={i} className="flex gap-2 mb-3 items-start last:mb-0">
+                      <span className="text-base flex-shrink-0 mt-0.5">🌿</span>
+                      <p className="text-sm text-[#1B1B1B] leading-relaxed">{step}</p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Scan again button */}

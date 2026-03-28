@@ -27,24 +27,28 @@ export default function CandidateCard({ candidate, isSelected, onSelect }) {
         </div>
       )}
 
-      {/* Plant image */}
+      {/* Plant image — smaller on mobile, larger on sm+ */}
       {imgError ? (
-        <div className="w-20 h-20 rounded-xl bg-[#F0FFF4] flex items-center justify-center text-3xl flex-shrink-0">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-[#F0FFF4] flex items-center justify-center text-3xl flex-shrink-0">
           🌿
         </div>
       ) : (
         <img
           src={candidate.image_url}
           alt={candidate.common_name}
-          className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+          className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover flex-shrink-0"
           onError={() => setImgError(true)}
         />
       )}
 
       {/* Names */}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-[#1B1B1B] text-base leading-tight">{candidate.common_name}</p>
-        <p className="text-sm italic text-[#555F61] mt-0.5 truncate">{candidate.name}</p>
+        <p className="font-semibold text-[#1B1B1B] text-base leading-tight truncate">
+          {candidate.common_name}
+        </p>
+        <p className="text-sm italic text-[#555F61] mt-0.5 line-clamp-2">
+          {candidate.name}
+        </p>
       </div>
 
       {/* Confidence badge */}
