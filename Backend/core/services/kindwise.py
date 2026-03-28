@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import logging
 from typing import Any
 
 import requests
@@ -10,8 +11,15 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+logger = logging.getLogger(__name__)
+
 API_KEY_HEADER = 'Api-Key'
 UPSTREAM_TIMEOUT = 60
+
+
+def _preview(text: str, limit: int = 180) -> str:
+    one_line = ' '.join(text.split())[:limit]
+    return one_line + ('...' if len(text) > limit else '')
 
 
 def _normalize_base64_image_string(value: str) -> str:
@@ -114,6 +122,13 @@ def _post_json(
         timeout=UPSTREAM_TIMEOUT,
     )
     if r.status_code >= 400:
+        preview = _preview(r.text or r.reason or '')
+        logger.warning(
+            'Upstream error %s %s - %s',
+            r.status_code,
+            url,
+            preview,
+        )
         return upstream_error_response(r)
     return r.json()
 

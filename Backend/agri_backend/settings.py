@@ -54,6 +54,15 @@ PLANT_API_URL = config('PLANT_API_URL', default='https://api.plant.id/v3')
 PLANT_HEALTH_API_KEY = config('PLANTHEALTH_API_KEY')
 CROP_API_URL = config('PLANTHEALTH_API_URL', default='https://crop.kindwise.com/api/v1')
 
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+GEMINI_MODEL = config('GEMINI_MODEL', default='gemini-3-flash-preview')
+GEMINI_API_METHOD = config(
+    'GEMINI_API_METHOD',
+    default='streamGenerateContent',
+)
+GEMINI_THINKING_LEVEL = config('GEMINI_THINKING_LEVEL', default='HIGH')
+GEMINI_USE_GOOGLE_SEARCH = config('GEMINI_USE_GOOGLE_SEARCH', default=True, cast=bool)
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
@@ -186,4 +195,51 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
+}
+
+LOG_LEVEL = config('LOG_LEVEL', default='INFO')
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'short': {
+            '()': 'agri_backend.log_formatters.TruncatingConsoleFormatter',
+            'format': '[%(levelname)s] %(asctime)s %(name)s: %(message)s',
+            'datefmt': '%H:%M:%S',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'short',
+            'level': 'DEBUG',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': LOG_LEVEL,
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'core': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
 }
