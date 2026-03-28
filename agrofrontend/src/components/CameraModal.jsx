@@ -1,11 +1,15 @@
 import { useRef, useEffect, useState } from 'react'
+import { Camera } from 'lucide-react'
 
-export default function CameraModal({ onCapture, onClose }) {
+export default function CameraModal({ t, onCapture, onClose }) {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
+  const tRef = useRef(t)
   const [ready, setReady] = useState(false)
   const [error, setError] = useState(null)
   const [flash, setFlash] = useState(false)
+
+  tRef.current = t
 
   useEffect(() => {
     async function startCamera() {
@@ -19,13 +23,13 @@ export default function CameraModal({ onCapture, onClose }) {
           videoRef.current.srcObject = stream
         }
       } catch {
-        setError('Camera access denied. Please allow camera permissions and try again.')
+        setError(tRef.current.camera_error_denied)
       }
     }
     startCamera()
 
     return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop())
+      streamRef.current?.getTracks().forEach((tr) => tr.stop())
     }
   }, [])
 
@@ -34,14 +38,13 @@ export default function CameraModal({ onCapture, onClose }) {
   }
 
   function stopStream() {
-    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current?.getTracks().forEach((tr) => tr.stop())
     streamRef.current = null
   }
 
   function handleCapture() {
     if (!videoRef.current || !ready) return
 
-    // Flash effect
     setFlash(true)
     setTimeout(() => setFlash(false), 150)
 
@@ -66,33 +69,31 @@ export default function CameraModal({ onCapture, onClose }) {
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
 
-      {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 bg-black/80">
         <button
+          type="button"
           onClick={handleClose}
           className="text-white text-sm font-medium px-3 py-1 rounded-full border border-white/30 hover:bg-white/10 transition-colors"
         >
-          Cancel
+          {t.camera_cancel}
         </button>
-        <span className="text-white font-semibold text-sm">Take a Photo</span>
-        {/* spacer to keep title centred */}
-        <div className="w-16" />
+        <span className="text-white font-semibold text-sm">{t.camera_title}</span>
+        <div className="w-16" aria-hidden />
       </div>
 
-      {/* Camera feed */}
       <div className="flex-1 relative overflow-hidden">
-        {/* White flash overlay */}
         {flash && <div className="absolute inset-0 bg-white z-10 pointer-events-none" />}
 
         {error ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center gap-4">
-            <span className="text-5xl">📷</span>
+            <Camera size={48} color="#FFFFFF" strokeWidth={1.5} className="opacity-90" aria-hidden />
             <p className="text-white text-sm leading-relaxed">{error}</p>
             <button
+              type="button"
               onClick={handleClose}
               className="mt-2 px-6 py-2 rounded-full bg-white text-black text-sm font-semibold"
             >
-              Go Back
+              {t.camera_go_back}
             </button>
           </div>
         ) : (
@@ -105,7 +106,6 @@ export default function CameraModal({ onCapture, onClose }) {
               onCanPlay={handleVideoReady}
               className="w-full h-full object-cover"
             />
-            {/* Viewfinder corners */}
             {ready && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="relative w-64 h-64">
@@ -120,13 +120,13 @@ export default function CameraModal({ onCapture, onClose }) {
         )}
       </div>
 
-      {/* Shutter bar */}
       {!error && (
         <div className="bg-black/80 py-8 flex items-center justify-center">
           <button
+            type="button"
             onClick={handleCapture}
             disabled={!ready}
-            aria-label="Capture photo"
+            aria-label={t.capture_photo_aria}
             className={`
               w-18 h-18 rounded-full border-4 border-white flex items-center justify-center
               transition-all active:scale-90
