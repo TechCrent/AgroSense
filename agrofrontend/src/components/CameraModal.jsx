@@ -12,6 +12,14 @@ export default function CameraModal({ t, onCapture, onClose }) {
   tRef.current = t
 
   useEffect(() => {
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevOverflow
+    }
+  }, [])
+
+  useEffect(() => {
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -67,31 +75,33 @@ export default function CameraModal({ t, onCapture, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
-
-      <div className="flex items-center justify-between px-4 py-3 bg-black/80">
+    <div
+      className="fixed inset-0 z-50 flex w-full flex-col overflow-hidden bg-black"
+      style={{ height: '100dvh', maxHeight: '100dvh' }}
+    >
+      <div className="flex shrink-0 items-center justify-between bg-black/90 px-4 py-2.5 backdrop-blur-sm">
         <button
           type="button"
           onClick={handleClose}
-          className="text-white text-sm font-medium px-3 py-1 rounded-full border border-white/30 hover:bg-white/10 transition-colors"
+          className="rounded-full border border-white/35 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
         >
           {t.camera_cancel}
         </button>
-        <span className="text-white font-semibold text-sm">{t.camera_title}</span>
-        <div className="w-16" aria-hidden />
+        <span className="text-sm font-semibold text-white">{t.camera_title}</span>
+        <div className="w-16 shrink-0" aria-hidden />
       </div>
 
-      <div className="flex-1 relative overflow-hidden">
-        {flash && <div className="absolute inset-0 bg-white z-10 pointer-events-none" />}
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        {flash && <div className="pointer-events-none absolute inset-0 z-20 bg-white" />}
 
         {error ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center gap-4">
+          <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
             <Camera size={48} color="#FFFFFF" strokeWidth={1.5} className="opacity-90" aria-hidden />
-            <p className="text-white text-sm leading-relaxed">{error}</p>
+            <p className="text-sm leading-relaxed text-white">{error}</p>
             <button
               type="button"
               onClick={handleClose}
-              className="mt-2 px-6 py-2 rounded-full bg-white text-black text-sm font-semibold"
+              className="mt-2 rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-black"
             >
               {t.camera_go_back}
             </button>
@@ -104,40 +114,35 @@ export default function CameraModal({ t, onCapture, onClose }) {
               playsInline
               muted
               onCanPlay={handleVideoReady}
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
             />
-            {ready && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="relative w-64 h-64">
-                  <span className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#52B788] rounded-tl-lg" />
-                  <span className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-[#52B788] rounded-tr-lg" />
-                  <span className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-[#52B788] rounded-bl-lg" />
-                  <span className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#52B788] rounded-br-lg" />
-                </div>
+
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+              <div className="pointer-events-auto flex flex-col items-center gap-3 px-4">
+                <button
+                  type="button"
+                  onClick={handleCapture}
+                  disabled={!ready}
+                  aria-disabled={!ready}
+                  className={`
+                    group flex h-[5.25rem] w-[5.25rem] shrink-0 items-center justify-center rounded-full
+                    border-[5px] border-white bg-transparent
+                    shadow-[0_0_0_2px_rgba(82,183,136,0.45),0_8px_40px_rgba(0,0,0,0.55)]
+                    transition-all active:scale-95
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-[#52B788] focus-visible:ring-offset-2 focus-visible:ring-offset-black/50
+                    ${ready ? 'opacity-100' : 'cursor-not-allowed opacity-45'}
+                  `}
+                >
+                  <span className="h-14 w-14 rounded-full bg-white shadow-inner ring-1 ring-white/80 transition-transform group-active:scale-95" />
+                </button>
+                <span className="max-w-[14rem] text-center text-xs font-semibold uppercase tracking-wide text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.9)]">
+                  {t.capture_photo_aria}
+                </span>
               </div>
-            )}
+            </div>
           </>
         )}
       </div>
-
-      {!error && (
-        <div className="bg-black/80 py-8 flex items-center justify-center">
-          <button
-            type="button"
-            onClick={handleCapture}
-            disabled={!ready}
-            aria-label={t.capture_photo_aria}
-            className={`
-              w-18 h-18 rounded-full border-4 border-white flex items-center justify-center
-              transition-all active:scale-90
-              ${ready ? 'opacity-100' : 'opacity-40 cursor-not-allowed'}
-            `}
-            style={{ width: 72, height: 72 }}
-          >
-            <div className="w-14 h-14 rounded-full bg-white" />
-          </button>
-        </div>
-      )}
     </div>
   )
 }
