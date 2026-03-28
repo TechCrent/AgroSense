@@ -9,6 +9,7 @@ anthropic = "*"
 python-decouple = "*"
 djangorestframework = "*"
 requests = "*"
+drf-spectacular = "*"
 
 [dev-packages]
 
