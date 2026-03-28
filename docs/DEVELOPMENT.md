@@ -71,8 +71,8 @@ python scripts/verify_integration.py
 
 This checks `GET /health/` and `GET /api/schema/`. To test a **deployed** API:
 
-**Windows (cmd):** `set VERIFY_API_URL=https://your-backend.onrender.com` then `npm run verify` or `python scripts/verify_integration.py`  
-**PowerShell:** `$env:VERIFY_API_URL="https://your-backend.onrender.com"; npm run verify`
+**Windows (cmd):** `set VERIFY_API_URL=https://api.example.com` then `npm run verify` or `python scripts/verify_integration.py`  
+**PowerShell:** `$env:VERIFY_API_URL="https://api.example.com"; npm run verify`
 
 (`VERIFY_API_URL` must have **no** trailing slash.)
 
@@ -93,7 +93,7 @@ Before shipping the frontend:
 npm run build:frontend
 ```
 
-Set **`VITE_API_BASE_URL`** to your real API origin for production builds (see [DEPLOYMENT.md](./DEPLOYMENT.md)).
+For a production build, set **`VITE_API_BASE_URL`** to your public API origin (same scheme/host as the Django deployment, no trailing slash) before running `npm run build`.
 
 ## Troubleshooting
 
@@ -103,4 +103,3 @@ Set **`VITE_API_BASE_URL`** to your real API origin for production builds (see [
 | Frontend “cannot reach API” | Django running on `127.0.0.1:8000`; `VITE_API_BASE_URL` **empty** for dev proxy; restart Vite after changing `.env`. |
 | CORS errors when calling Django directly | Prefer empty `VITE_API_BASE_URL` in dev (proxy). If you set a full API URL, add `CORS_ALLOWED_ORIGINS` in `Backend/.env`. |
 
-When local verification passes, follow [DEPLOYMENT.md](./DEPLOYMENT.md).
