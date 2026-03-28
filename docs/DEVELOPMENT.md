@@ -1,6 +1,6 @@
 # Development: integration first
 
-Deploy only **after** the stack below works locally. The API and SPA are separate processes; the browser talks to Vite in dev, which proxies `/api` to Django.
+Deploy only **after** the stack below works locally (then see [DEPLOYMENT.md](./DEPLOYMENT.md) for Render + Vercel). The API and SPA are separate processes; the browser talks to Vite in dev, which proxies `/api` to Django.
 
 ## Prerequisites
 
@@ -93,7 +93,7 @@ Before shipping the frontend:
 npm run build:frontend
 ```
 
-For a production build, set **`VITE_API_BASE_URL`** to your public API origin (same scheme/host as the Django deployment, no trailing slash) before running `npm run build`.
+For a production build, set **`VITE_API_BASE_URL`** to your public API origin (same scheme/host as the Django deployment, no trailing slash) before running `npm run build`. On Vercel, set this in Project → Environment Variables ([DEPLOYMENT.md](./DEPLOYMENT.md)).
 
 ## Troubleshooting
 

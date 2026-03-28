@@ -7,6 +7,7 @@ Plant and crop identification, health assessment, and related APIs (Kindwise / G
 | Step | Doc |
 |------|-----|
 | Local backend + frontend + **verify integration** | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
+| **Render** (API) + **Vercel** (SPA) | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 | Python integration layer (Plant.id, Claude, Khaya) | [integration/INTEGRATION.md](integration/INTEGRATION.md) |
 
 **Repository layout**
@@ -14,6 +15,8 @@ Plant and crop identification, health assessment, and related APIs (Kindwise / G
 - **`Backend/`** — Django API (`manage.py`, `agri_backend/`, `core/`)
 - **`agrofrontend/`** — Vite + React SPA
 - **`integration/`** — Shared Python services used by Django
+- **`render.yaml`** — Render Blueprint (`rootDir: Backend`)
+- **`vercel.json`** — Vercel build for `agrofrontend/` from the repo root
 
 From the repo root, after the backend is running on port 8000:
 
