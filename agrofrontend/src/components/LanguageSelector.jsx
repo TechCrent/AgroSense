@@ -1,10 +1,15 @@
 const LANGUAGES = [
-  { value: 'en', label: 'English' },
-  { value: 'zu', label: 'Zulu' },
-  { value: 'xh', label: 'Xhosa' },
-  { value: 'swh', label: 'Swahili' },
-  { value: 'sot', label: 'Sesotho' },
-  { value: 'afr', label: 'Afrikaans' },
+  { value: 'en',      label: 'English'  },
+  { value: 'twi',     label: 'Twi'      },
+  { value: 'ga',      label: 'Ga'       },
+  { value: 'ewe',     label: 'Ewe'      },
+  { value: 'fante',   label: 'Fante'    },
+  { value: 'dagbani', label: 'Dagbani'  },
+  { value: 'gurene',  label: 'Gurene'   },
+  { value: 'yoruba',  label: 'Yoruba'   },
+  { value: 'kikuyu',  label: 'Kikuyu'   },
+  { value: 'luo',     label: 'Luo'      },
+  { value: 'kimeru',  label: 'Kimeru'   },
 ]
 
 export default function LanguageSelector({ lang, setLang, t }) {

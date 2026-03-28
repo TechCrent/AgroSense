@@ -1,14 +1,16 @@
 import CandidateCard from '../components/CandidateCard.jsx'
 import LanguageSelector from '../components/LanguageSelector.jsx'
+import ErrorMessage from '../components/ErrorMessage.jsx'
 
 export default function SelectionScreen({
   t, lang, setLang,
   candidates, selectedPlant, setSelectedPlant,
   handleConfirm, resetAll,
+  error, setError,
 }) {
   return (
     <div className="min-h-screen bg-[#F8FFF9]">
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg mx-auto animate-fadeIn">
 
         {/* Navbar */}
         <nav className="bg-white shadow-sm px-4 py-3 flex items-center justify-between">
@@ -17,7 +19,7 @@ export default function SelectionScreen({
         </nav>
 
         {/* Header */}
-        <div className="px-4 pt-6 pb-3">
+        <div className="px-4 pt-6 md:pt-10 pb-3">
           <button
             onClick={resetAll}
             className="flex items-center gap-1 text-[#2D6A4F] text-sm font-medium hover:underline"
@@ -29,7 +31,7 @@ export default function SelectionScreen({
         </div>
 
         {/* Candidate list */}
-        <div className="px-4 mt-4 pb-32">
+        <div className="px-4 mt-4 pb-36">
           {candidates.map((candidate) => (
             <div key={candidate.name} className="mb-3">
               <CandidateCard
@@ -44,6 +46,11 @@ export default function SelectionScreen({
         {/* Sticky confirm bar */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#D8E8DF] px-4 py-4 shadow-lg">
           <div className="max-w-lg mx-auto">
+            {error && (
+              <div className="mb-3">
+                <ErrorMessage message={error} onDismiss={() => setError(null)} />
+              </div>
+            )}
             <button
               onClick={() => selectedPlant && handleConfirm(selectedPlant)}
               disabled={!selectedPlant}
