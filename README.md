@@ -7,7 +7,7 @@ Plant and crop identification, health assessment, and related APIs (Kindwise / G
 | Step | Doc |
 |------|-----|
 | Local backend + frontend + **verify integration** | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) |
-| Render + Vercel | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
+| Production: Render (API) + Vercel (SPA) | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 | Python integration layer (Plant.id, Claude, Khaya) | [integration/INTEGRATION.md](integration/INTEGRATION.md) |
 
 **Repository layout**

@@ -1,77 +1,137 @@
-# Production deployment
+# Production deployment (Render + Vercel)
 
-Complete [DEVELOPMENT.md](./DEVELOPMENT.md) first (`npm run verify` against local Django). Production uses **Render** for the Django API and **Vercel** for the static SPA.
+Deploy the **Django API** on [Render](https://render.com) and the **Vite React app** on [Vercel](https://vercel.com). Do **not** deploy until [DEVELOPMENT.md](./DEVELOPMENT.md) passes locally (`npm run verify` or `python scripts/verify_integration.py` with Django on port 8000).
 
-## Principles
+---
 
-- **Secrets** only in platform env UIs, never in git.
-- **Backend**: `DEBUG=False`, strong `SECRET_KEY`, explicit `ALLOWED_HOSTS`, CORS/CSRF limited to real front-end origins.
-- **Frontend**: `VITE_*` vars are baked in at **build** time — change env on Vercel → **redeploy** the frontend.
+## Architecture
 
-## 1. Render (Django API)
+| Layer | Host | Serves |
+|-------|------|--------|
+| API | Render web service | `https://<backend>.onrender.com` — Django + Gunicorn |
+| SPA | Vercel | `https://<project>.vercel.app` — static `agrofrontend/dist` |
 
-1. **New** → **Web Service** (or **Blueprint** using [`render.yaml`](../render.yaml)).
-2. **Root directory:** `Backend`
-3. **Build command:**  
+The browser calls the API **directly** from the SPA origin. There is no Vite proxy in production. **`VITE_API_BASE_URL`** must point at the Render URL and is **baked in at build time** on Vercel.
+
+---
+
+## 1. Render — Django API
+
+### Option A — Blueprint (from repo)
+
+1. Render dashboard → **New +** → **Blueprint**.
+2. Connect the Git repo and select [`render.yaml`](../render.yaml).
+3. Open the created **Web Service** → **Environment** and add **all** variables from [Backend/.env.example](../Backend/.env.example) that your app needs (see §3 and [Backend/.env.render.template](../Backend/.env.render.template)).
+4. **Redeploy** after saving secrets.
+
+### Option B — Manual web service
+
+1. **New +** → **Web Service** → connect the repo.
+2. **Root Directory:** `Backend`
+3. **Runtime:** Python 3.13 (or match [`Backend/runtime.txt`](../Backend/runtime.txt)).
+4. **Build Command:**  
    `pip install -r requirements.txt && python manage.py migrate --noinput`
-4. **Start command:**  
+5. **Start Command:**  
    `gunicorn agri_backend.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4`
-5. **Health check path:** `/health/`
+6. **Health Check Path:** `/health/`
+7. Add environment variables (§3).
+8. **Deploy**
 
-### Environment variables (Render)
+### After Render deploys
 
-Set from [Backend/.env.example](../Backend/.env.example). Minimum:
-
-| Variable | Notes |
-|----------|--------|
-| `SECRET_KEY` | Long random string. |
-| `DEBUG` | `False` |
-| `ALLOWED_HOSTS` | Your service hostname, e.g. `agrosense-backend.onrender.com` |
-| `CORS_ALLOWED_ORIGINS` | `https://your-app.vercel.app` (exact origin, **https**, no trailing slash) |
-| `CSRF_TRUSTED_ORIGINS` | Same as CORS if you rely on CSRF from that origin |
-| API keys | `CLAUDE_API_KEY`, `PLANT_DETECTION_API_KEY`, `PLANTHEALTH_API_KEY`, `GEMINI_API_KEY`, etc. |
-
-**Database:** omit `DATABASE_URL` to use SQLite on the instance (fine for demos). For durable data, add Render PostgreSQL and set `DATABASE_URL` to the **Internal Database URL** (full URL — not a `...@host...` placeholder).
-
-After deploy, note the public URL: `https://<name>.onrender.com`.
-
-**Smoke test:**
+- Public URL: `https://<service-name>.onrender.com` (no trailing slash).
+- Smoke test from repo root:
 
 ```bash
-set VERIFY_API_URL=https://<name>.onrender.com
+# Windows cmd
+set VERIFY_API_URL=https://<service-name>.onrender.com
+
+# PowerShell
+$env:VERIFY_API_URL="https://<service-name>.onrender.com"
+
 npm run verify
 ```
 
-## 2. Vercel (React SPA)
+Or: `python scripts/verify_integration.py`
 
-1. Import the **same Git repo**.
-2. **Root directory:** repository root (uses root [`vercel.json`](../vercel.json)).
-3. **Environment variables** (Production — and Preview if needed):
+---
 
-| Variable | Value |
-|----------|--------|
-| `VITE_API_BASE_URL` | `https://<name>.onrender.com` — **no trailing slash** |
+## 2. Vercel — React SPA
 
-4. Deploy / redeploy so the build picks up `VITE_API_BASE_URL`.
+1. **Add New Project** → import the **same** Git repository.
+2. **Root Directory:** leave as **repository root** (the repo contains [`vercel.json`](../vercel.json) at the root).
+3. **Framework Preset:** Vite (usually auto-detected).
+4. **Environment Variables** (at least **Production**; add **Preview** if you use preview URLs):
 
-The SPA must call the API by absolute URL in production (there is no Vite proxy on Vercel). Empty `VITE_API_BASE_URL` is only for local dev.
+| Name | Value |
+|------|--------|
+| `VITE_API_BASE_URL` | `https://<service-name>.onrender.com` (no trailing slash, no path) |
 
-## 3. Cross-origin checklist
+5. **Deploy**. Any change to `VITE_*` requires a **new build** (Redeploy).
 
-1. Render **`CORS_ALLOWED_ORIGINS`** includes the exact Vercel `https://…` origin.
-2. Frontend **`VITE_API_BASE_URL`** matches the Render base URL (scheme + host, no path, no trailing slash).
-3. Redeploy **Vercel** after any `VITE_*` change.
+### Custom domain
 
-## 4. Operational notes
+If the SPA uses `https://app.example.com`, put that exact origin in Render **`CORS_ALLOWED_ORIGINS`** and **`CSRF_TRUSTED_ORIGINS`** (see §3).
 
-- **Cold starts:** free-tier Render services may sleep; first request can take ~30–60s.
-- **Headers:** root `vercel.json` sets basic security headers on static assets; Django should stay behind HTTPS on Render.
+---
 
-## Files
+## 3. Environment variables (Render)
 
-| File | Role |
-|------|------|
-| [`render.yaml`](../render.yaml) | Optional Render Blueprint |
-| [`vercel.json`](../vercel.json) | Vercel build output + SPA routing + headers |
-| [`Backend/requirements.txt`](../Backend/requirements.txt) | Python dependencies |
+Copy from [Backend/.env.example](../Backend/.env.example). Never commit real values.
+
+| Variable | Required | Notes |
+|----------|----------|--------|
+| `SECRET_KEY` | Yes | Long random string. Generate e.g. `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`. |
+| `DEBUG` | Yes | `False` |
+| `ALLOWED_HOSTS` | Yes | Render hostname only, e.g. `agrosense-backend.onrender.com` (comma-separated if several). |
+| `CORS_ALLOWED_ORIGINS` | Yes | Exact Vercel origin(s): `https://your-project.vercel.app` (https, no trailing slash). |
+| `CSRF_TRUSTED_ORIGINS` | If cookies/CSRF from SPA | Same origins as CORS when applicable. |
+| `LOG_LEVEL` | No | e.g. `INFO` |
+| `DATABASE_URL` | No | Omit for **SQLite** on the instance. For Postgres, paste Render’s **Internal Database URL** (hostname looks like `dpg-….render.com`).**Do not** use placeholder hostnames like `host`. |
+| `CLAUDE_API_KEY` | If used | Anthropic |
+| `PLANT_DETECTION_API_KEY` | If used | Kindwise plant.id |
+| `PLANTHEALTH_API_KEY` | If used | Kindwise crop / health |
+| `GEMINI_API_KEY` | If used | Google AI |
+| `KHAYA_API_TOKEN` | If used | Lelapa / translation |
+
+---
+
+## 4. Wire frontend ↔ backend
+
+1. **Vercel** `VITE_API_BASE_URL` = Render base URL **exactly** (`https` + host, no `/` at end).
+2. **Render** `CORS_ALLOWED_ORIGINS` includes **every** Vercel origin you use (production + preview if needed), comma-separated.
+3. Change CORS or API URL → **redeploy** the affected service.
+
+---
+
+## 5. Order of operations
+
+1. Deploy **Render** → set env → confirm `/health/` and `npm run verify` with `VERIFY_API_URL`.
+2. Set **`VITE_API_BASE_URL`** on **Vercel** → deploy frontend.
+3. If the browser still blocks requests, fix CORS on Render and redeploy the backend.
+
+---
+
+## 6. Troubleshooting
+
+| Symptom | What to check |
+|---------|----------------|
+| Frontend “cannot reach API” / network error | `VITE_API_BASE_URL` set on Vercel **Production** and **redeploy** after changes. |
+| CORS error in browser console | `CORS_ALLOWED_ORIGINS` on Render must match the **exact** SPA origin (`https://…`, no trailing slash). |
+| First request very slow | Render free tier **cold start**; retry after ~30–60s. |
+| `could not translate host name "host"` | Bad `DATABASE_URL` placeholder — use real Internal URL or remove `DATABASE_URL` for SQLite. |
+| Build fails on Render | `pip` + `requirements.txt` only; **Root Directory** = `Backend`. |
+| Vercel builds wrong app | **Root Directory** = repo root, not `agrofrontend` alone. |
+
+---
+
+## 7. Files in this repo
+
+| File | Purpose |
+|------|---------|
+| [`render.yaml`](../render.yaml) | Optional Render Blueprint (`rootDir: Backend`) |
+| [`vercel.json`](../vercel.json) | Vercel: install/build/output, SPA rewrites, security headers |
+| [`Backend/requirements.txt`](../Backend/requirements.txt) | Python dependencies for Render |
 | [`Backend/runtime.txt`](../Backend/runtime.txt) | Python version hint |
+| [`Backend/.env.example`](../Backend/.env.example) | Full list of backend variables |
+| [`Backend/.env.render.template`](../Backend/.env.render.template) | Copy-paste checklist for Render UI |

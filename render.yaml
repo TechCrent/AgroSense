@@ -1,7 +1,11 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
-# Before deploying: complete docs/DEVELOPMENT.md and npm run verify locally.
-# DB: omit DATABASE_URL for SQLite, or set Internal URL from Render Postgres.
-# Env: see docs/DEPLOYMENT.md and Backend/.env.example
+#
+# Prerequisites: docs/DEVELOPMENT.md (local verify) before first deploy.
+#
+# After first deploy: Web Service → Environment → add secrets from Backend/.env.example
+# (SECRET_KEY, ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS, API keys). Redeploy.
+#
+# Database: leave DATABASE_URL unset for SQLite, or link Render Postgres and set DATABASE_URL.
 
 services:
   - type: web
