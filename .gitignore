@@ -1,5 +1,8 @@
 .env
 
+# Root tooling (npm run verify) — no root node deps
+node_modules/
+
 # Django SQLite (local / Render when DATABASE_URL unset)
 db.sqlite3
 *.sqlite3
