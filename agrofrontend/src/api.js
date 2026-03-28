@@ -1,7 +1,8 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL
+  // Empty string = same origin (Vite dev server), which proxies /api → integration dev_api (port 8787).
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
 })
 
 export const scanPlant = (imageFile) => {

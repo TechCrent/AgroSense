@@ -13,6 +13,21 @@ Python module for **Plant.id** (identify + health), **Anthropic Claude** (diagno
 
 3. Ensure the repo root is on `PYTHONPATH` when running Django, **or** copy the `integration` package into your Django project tree so `import integration` works.
 
+## Frontend without Django (dev)
+
+The browser cannot hold API keys. Use the small **FastAPI** shim [`integration/dev_api.py`](dev_api.py), which exposes the same **`/api/scan/`** and **`/api/confirm/`** routes as the Django app.
+
+1. Put keys in `integration/.env` or repo-root `.env` (see below).
+2. From **repo root**:
+
+   ```bash
+   python -m uvicorn integration.dev_api:app --reload --host 127.0.0.1 --port 8787
+   ```
+
+3. In **`agrofrontend`**, copy [`.env.example`](../agrofrontend/.env.example) if needed: leave **`VITE_API_BASE_URL` empty** and **do not** set `VITE_DEV_MOCK` (or set it to `false`). Start Vite (`npm run dev`). Requests to `/api/...` are proxied to port **8787** (see [`agrofrontend/vite.config.js`](../agrofrontend/vite.config.js)).
+
+4. For **offline UI work only**, set **`VITE_DEV_MOCK=true`** in `agrofrontend/.env` (uses [`mockData.js`](../agrofrontend/src/mockData.js) and skips all APIs).
+
 ## Environment variables
 
 | Variable | Required for | Description |

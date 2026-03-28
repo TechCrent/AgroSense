@@ -1,4 +1,5 @@
-export const DEV_MODE = true
+// Set VITE_DEV_MOCK=true in agrofrontend/.env to use mocks without any API server.
+export const DEV_MODE = import.meta.env.VITE_DEV_MOCK === 'true'
 
 export const MOCK_CANDIDATES = [
   {
