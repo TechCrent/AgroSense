@@ -10,6 +10,9 @@ python-decouple = "*"
 djangorestframework = "*"
 requests = "*"
 drf-spectacular = "*"
+django-cors-headers = "*"
+httpx = "*"
+python-dotenv = "*"
 
 [dev-packages]
 

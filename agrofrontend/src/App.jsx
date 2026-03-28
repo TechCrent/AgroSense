@@ -149,7 +149,10 @@ export default function App() {
     }
 
     try {
-      const { data } = await confirmPlant(imageFile, plant.common_name, lang)
+      const { data } = await confirmPlant(imageFile, plant.common_name, lang, {
+        scientificName: plant.name,
+        confidence: plant.confidence,
+      })
       setResult(data)
       saveToHistory(data, imagePreview, lang)
       setScreen('result')
@@ -176,7 +179,10 @@ export default function App() {
 
     try {
       const plant = selectedPlant ?? result.plant
-      const { data } = await confirmPlant(imageFile, plant.common_name, targetLang)
+      const { data } = await confirmPlant(imageFile, plant.common_name, targetLang, {
+        scientificName: plant.name,
+        confidence: plant.confidence,
+      })
       setResult(data)
     } catch {
       // silently keep existing result on failure
