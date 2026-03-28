@@ -14,8 +14,9 @@ import os
 import sys
 from pathlib import Path
 
-import dj_database_url
 from decouple import config
+
+from .db_url import parse_postgres_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -137,7 +138,7 @@ WSGI_APPLICATION = 'agri_backend.wsgi.application'
 _database_url = config('DATABASE_URL', default='')
 if _database_url:
     DATABASES = {
-        'default': dj_database_url.parse(_database_url, conn_max_age=600),
+        'default': parse_postgres_url(_database_url, conn_max_age=600),
     }
 else:
     DATABASES = {
