@@ -1,6 +1,6 @@
 # AgroSense integration layer
 
-Python module for **Plant.id** (identify + health), **Anthropic Claude** (diagnosis copy), and **Khaya / Lelapa Vulavula** (translation). Intended to be imported from Django once the backend endpoints exist.
+Python module for **Plant.id** (identify + health), **Anthropic Claude** (diagnosis copy), and **Khaya / Lelapa Vulavula** (translation). Used by Django (`/api/scan/`, `/api/confirm/`), the optional FastAPI dev server, and smoke tests.
 
 ## Setup
 
@@ -143,10 +143,16 @@ or, when unhealthy:
 
 Pass `scientific_name` and `plant_confidence` from the scan step when available so `plant.name` / `plant.confidence` match identification results.
 
-## Django wiring (later)
+## Django wiring (`Backend/`)
 
-- **`POST /api/scan/`** — Read uploaded image → base64 → `identify_plant` → JSON `{"candidates": [...]}`.
-- **`POST /api/confirm/`** — Fields: `image`, `plant_name` (common name), `language` → `compose_confirm` (or the individual steps) → JSON body for the result screen.
+Routes live in [`Backend/core/agrosense_views.py`](../Backend/core/agrosense_views.py) and [`Backend/core/urls.py`](../Backend/core/urls.py):
+
+- **`POST /api/scan/`** — multipart `image` → `identify_plant` → `{"candidates": [...]}`.
+- **`POST /api/confirm/`** — `image`, `plant_name`, `language`; optional `scientific_name`, `plant_confidence` → `compose_confirm`.
+
+[`Backend/agri_backend/settings.py`](../Backend/agri_backend/settings.py) adds the repo root to `sys.path`, syncs env vars for `integration`, enables **CORS** for the Vite app (default `http://localhost:5173` / `127.0.0.1:5173`, or set `CORS_ALLOWED_ORIGINS`), and uses DRF **AllowAny** for the SPA.
+
+Raw Kindwise proxies (`/identify-plant/`, `/assess-plant-health/`, `/identify-crop/`) are unchanged.
 
 ## Manual tests
 

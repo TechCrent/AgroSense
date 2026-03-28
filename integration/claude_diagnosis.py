@@ -98,21 +98,32 @@ def get_diagnosis(prompt: str, *, output_language: str = "en") -> DiagnosisDict:
     """
     from anthropic import Anthropic
 
-    client = Anthropic(api_key=get_anthropic_key())
-    system = (
-        "You are an agricultural advisory assistant for AgroSense. "
-        "Output must be valid JSON only, with keys summary (string) and steps (array of strings). "
-        "Do not include markdown, code fences, or commentary outside the JSON object."
-    )
-    msg = client.messages.create(
-        model=ANTHROPIC_MODEL,
-        max_tokens=2048,
-        system=system,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    try:
+        client = Anthropic(api_key=get_anthropic_key())
+        system = (
+            "You are an agricultural advisory assistant for AgroSense. "
+            "Output must be valid JSON only, with keys summary (string) and steps (array of strings). "
+            "Do not include markdown, code fences, or commentary outside the JSON object."
+        )
+        msg = client.messages.create(
+            model=ANTHROPIC_MODEL,
+            max_tokens=2048,
+            system=system,
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except Exception as e:
+        extra = getattr(e, "message", None) or str(e)
+        raise ValueError(
+            f"Claude API failed ({type(e).__name__}): {extra}. "
+            f"Check CLAUDE_API_KEY and ANTHROPIC_MODEL={ANTHROPIC_MODEL!r}."
+        ) from e
+
     if not msg.content or msg.content[0].type != "text":
-        raise RuntimeError("Unexpected Claude response shape")
+        raise ValueError("Claude returned an unexpected response shape (no text).")
     raw = msg.content[0].text
-    diagnosis = _parse_diagnosis_json(raw)
+    try:
+        diagnosis = _parse_diagnosis_json(raw)
+    except (json.JSONDecodeError, ValueError) as e:
+        raise ValueError(f"Claude output was not valid diagnosis JSON: {e}") from e
     diagnosis["language"] = output_language
     return diagnosis
