@@ -1,10 +1,25 @@
 import axios from 'axios'
 
+const apiBase = (import.meta.env.VITE_API_BASE_URL ?? '').trim()
+
 /** Human-readable message for UI (DRF `detail`, network, etc.). */
 export function getApiErrorMessage(error, fallback) {
   if (!error) return fallback
+  if (typeof error.message === 'string' && error.message.startsWith('VITE_API_BASE_URL')) {
+    return error.message
+  }
   if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-    return 'Cannot reach the server. Start Django in Backend: pipenv run python manage.py runserver (port 8000).'
+    if (import.meta.env.PROD) {
+      return (
+        'Cannot reach the API from production. Set VITE_API_BASE_URL in Vercel (Project → Settings → Environment Variables) ' +
+        'to your Render backend URL, e.g. https://your-service.onrender.com with no trailing slash, then redeploy the frontend. ' +
+        'On Render, set CORS_ALLOWED_ORIGINS to your Vercel https://… URL. If the first request is slow, the free Render tier may be waking the service.'
+      )
+    }
+    return (
+      'Cannot reach the API. Local dev: (1) In Backend: pipenv install && pipenv run python manage.py runserver 127.0.0.1:8000 ' +
+      '(2) In agrofrontend: npm run dev. Leave VITE_API_BASE_URL empty in agrofrontend/.env so /api proxies to Django.'
+    )
   }
   const status = error.response?.status
   const d = error.response?.data?.detail
@@ -21,9 +36,19 @@ export function getApiErrorMessage(error, fallback) {
 }
 
 const api = axios.create({
-  // Empty baseURL: browser → Vite dev server → proxy `/api` → Django (see vite.config.js).
-  // Or set VITE_API_BASE_URL to your API origin (e.g. http://127.0.0.1:8000).
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
+  // Dev: leave empty → Vite proxies /api → Django (vite.config.js). Prod: must set VITE_API_BASE_URL on Vercel to Render origin.
+  baseURL: apiBase,
+})
+
+api.interceptors.request.use((config) => {
+  if (import.meta.env.PROD && !apiBase) {
+    return Promise.reject(
+      new Error(
+        'VITE_API_BASE_URL is not set. In Vercel → Environment Variables, add VITE_API_BASE_URL=https://your-backend.onrender.com (no trailing slash) and redeploy.'
+      )
+    )
+  }
+  return config
 })
 
 export const scanPlant = (imageFile) => {
