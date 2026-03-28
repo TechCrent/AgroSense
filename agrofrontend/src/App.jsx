@@ -47,7 +47,8 @@ export default function App() {
   const appColumnRef = useRef(null)
 
   useEffect(() => {
-    appColumnRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    appColumnRef.current?.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [location.pathname])
 
   const [theme, setTheme] = useState(() => {
@@ -61,7 +62,6 @@ export default function App() {
 
   useEffect(() => {
     const s = readSettings()
-    if (s.language) setLang(s.language)
     if (s.theme === 'light' || s.theme === 'dark') setTheme(s.theme)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

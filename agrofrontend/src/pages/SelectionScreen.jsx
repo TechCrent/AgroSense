@@ -63,7 +63,7 @@ export default function SelectionScreen({
           <div className="bg-white/95 dark:bg-[#141c19]/95 backdrop-blur-xl border border-ag-border dark:border-[#2a3d34] rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] p-5">
             {error && (
               <div className="mb-3">
-                <ErrorMessage message={error} onDismiss={() => setError(null)} />
+                <ErrorMessage t={t} message={error} onDismiss={() => setError(null)} />
               </div>
             )}
             <PrimaryButton
