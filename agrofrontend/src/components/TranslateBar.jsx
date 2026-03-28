@@ -1,23 +1,13 @@
 import { useState } from 'react'
+import { Globe } from 'lucide-react'
+import { APP_LANG_CODES, langLabel } from '../i18n/langCodes.js'
+import { interpolate } from '../i18n/interpolate.js'
 
-const LANGUAGES = [
-  { value: 'en',      label: 'English'  },
-  { value: 'twi',     label: 'Twi'      },
-  { value: 'ga',      label: 'Ga'       },
-  { value: 'ewe',     label: 'Ewe'      },
-  { value: 'fante',   label: 'Fante'    },
-  { value: 'dagbani', label: 'Dagbani'  },
-  { value: 'gurene',  label: 'Gurene'   },
-  { value: 'yoruba',  label: 'Yoruba'   },
-  { value: 'kikuyu',  label: 'Kikuyu'   },
-  { value: 'luo',     label: 'Luo'      },
-  { value: 'kimeru',  label: 'Kimeru'   },
-]
-
-export default function TranslateBar({ translating, translateResult, diagnosisLang }) {
+export default function TranslateBar({ t, translating, translateResult, diagnosisLang }) {
   const [open, setOpen] = useState(false)
 
-  const currentLabel = LANGUAGES.find((l) => l.value === diagnosisLang)?.label ?? 'English'
+  const currentName = langLabel(t, diagnosisLang)
+  const currentlyLine = interpolate(t.translate_currently_in, { name: currentName })
 
   function handleSelect(langValue) {
     if (langValue === diagnosisLang || translating) return
@@ -26,62 +16,62 @@ export default function TranslateBar({ translating, translateResult, diagnosisLa
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-4 mb-3">
-      {/* Header row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-base">🌐</span>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-[#555F61]">
-              Translate Diagnosis
+    <div className="ag-card rounded-2xl shadow-sm dark:shadow-none p-4 mb-3 border ag-border">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Globe size={16} color="#2D6A4F" strokeWidth={1.75} className="flex-shrink-0" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-widest ag-text-muted">
+              {t.translate_diagnosis_title}
             </p>
             {!translating && (
-              <p className="text-xs text-[#2D6A4F] mt-0.5 font-medium">
-                Currently in: {currentLabel}
+              <p className="text-xs ag-text-brand mt-0.5 font-medium truncate">
+                {currentlyLine}
               </p>
             )}
             {translating && (
-              <p className="text-xs text-[#555F61] mt-0.5 flex items-center gap-1">
-                <span className="inline-block w-3 h-3 border-2 border-[#D8E8DF] border-t-[#2D6A4F] rounded-full animate-spin" />
-                Translating...
+              <p className="text-xs ag-text-muted mt-0.5 flex items-center gap-1">
+                <span className="inline-block w-3 h-3 border-2 border-[#D8E8DF] dark:border-[#3d4f47] border-t-[#2D6A4F] rounded-full animate-spin" />
+                {t.translating}
               </p>
             )}
           </div>
         </div>
 
         <button
+          type="button"
           onClick={() => !translating && setOpen((o) => !o)}
           disabled={translating}
           className={`
-            flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors
+            flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors shrink-0
             ${translating
-              ? 'border-[#D8E8DF] text-[#9CA3AF] cursor-not-allowed'
+              ? 'border ag-border text-[#9CA3AF] cursor-not-allowed'
               : open
                 ? 'bg-[#2D6A4F] text-white border-[#2D6A4F]'
-                : 'border-[#52B788] text-[#2D6A4F] hover:bg-[#F0FFF4]'
+                : 'border-[#52B788] dark:border-[#3d8f6c] ag-text-brand hover:bg-[#F0FFF4] dark:hover:bg-[#1a2e24]'
             }
           `}
         >
-          {open ? 'Close ✕' : 'Change ▾'}
+          {open ? t.translate_close : t.translate_change}
         </button>
       </div>
 
-      {/* Language grid */}
       {open && !translating && (
         <div className="mt-3 flex flex-wrap gap-2">
-          {LANGUAGES.map(({ value, label }) => (
+          {APP_LANG_CODES.map((value) => (
             <button
               key={value}
+              type="button"
               onClick={() => handleSelect(value)}
               className={`
                 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all
                 ${value === diagnosisLang
                   ? 'bg-[#2D6A4F] text-white border-[#2D6A4F]'
-                  : 'bg-white text-[#2D6A4F] border-[#52B788] hover:bg-[#F0FFF4]'
+                  : 'ag-card ag-text-brand border-[#52B788] dark:border-[#3d8f6c] hover:bg-[#F0FFF4] dark:hover:bg-[#1a2e24]'
                 }
               `}
             >
-              {label}
+              {langLabel(t, value)}
             </button>
           ))}
         </div>

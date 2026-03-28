@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useLocale } from './hooks/useLocale.js'
 import { scanPlant, confirmPlant } from './api.js'
 import { DEV_MODE, MOCK_CANDIDATES, MOCK_RESULT_INFECTED } from './mockData.js'
@@ -7,10 +7,63 @@ import Home from './pages/Home.jsx'
 import SelectionScreen from './pages/SelectionScreen.jsx'
 import LoadingScreen from './components/LoadingScreen.jsx'
 import Result from './pages/Result.jsx'
+import HistoryPage from './pages/HistoryPage.jsx'
+import SettingsPage from './pages/SettingsPage.jsx'
+import BottomNav from './components/BottomNav.jsx'
+import AppShell from './components/AppShell.jsx'
+
+const SETTINGS_KEY = 'agrosense_settings'
+const DEFAULT_SETTINGS = { language: 'en', theme: 'light', notifications: true }
+
+function readSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY)
+    if (!raw) return { ...DEFAULT_SETTINGS }
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+  } catch {
+    return { ...DEFAULT_SETTINGS }
+  }
+}
+
+function saveToHistory(result, imagePreview, lang) {
+  const existing = JSON.parse(localStorage.getItem('agrosense_history') || '[]')
+  const entry = {
+    id: Date.now(),
+    timestamp: new Date().toISOString(),
+    imagePreview,
+    plant: result.plant,
+    health: result.health,
+    diagnosis: result.diagnosis,
+    lang,
+  }
+  const updated = [entry, ...existing].slice(0, 20)
+  localStorage.setItem('agrosense_history', JSON.stringify(updated))
+}
 
 export default function App() {
   const { t, lang, setLang } = useLocale()
   const navigate = useNavigate()
+  const location = useLocation()
+  const appColumnRef = useRef(null)
+
+  useEffect(() => {
+    appColumnRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [location.pathname])
+
+  const [theme, setTheme] = useState(() => {
+    const s = readSettings()
+    return s.theme === 'dark' ? 'dark' : 'light'
+  })
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
+
+  useEffect(() => {
+    const s = readSettings()
+    if (s.language) setLang(s.language)
+    if (s.theme === 'light' || s.theme === 'dark') setTheme(s.theme)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
@@ -22,12 +75,6 @@ export default function App() {
   const [error, setError] = useState(null)
   const [translating, setTranslating] = useState(false)
 
-  // Drive URL from screen state
-  useEffect(() => {
-    if (screen === 'result') navigate('/result')
-    else navigate('/')
-  }, [screen]) // eslint-disable-line react-hooks/exhaustive-deps
-
   function resetAll() {
     setImageFile(null)
     setImagePreview(null)
@@ -38,6 +85,18 @@ export default function App() {
     setLoadingStep(0)
     setError(null)
     setTranslating(false)
+    navigate('/')
+  }
+
+  const viewHistoryEntry = (entry) => {
+    setResult({
+      plant: entry.plant,
+      health: entry.health,
+      diagnosis: entry.diagnosis,
+    })
+    setImagePreview(entry.imagePreview)
+    setScreen('result')
+    navigate('/result')
   }
 
   async function handleScan() {
@@ -83,14 +142,18 @@ export default function App() {
     if (DEV_MODE) {
       await new Promise((resolve) => setTimeout(resolve, 4000))
       setResult(MOCK_RESULT_INFECTED)
+      saveToHistory(MOCK_RESULT_INFECTED, imagePreview, lang)
       setScreen('result')
+      navigate('/result')
       return
     }
 
     try {
       const { data } = await confirmPlant(imageFile, plant.common_name, lang)
       setResult(data)
+      saveToHistory(data, imagePreview, lang)
       setScreen('result')
+      navigate('/result')
     } catch {
       setError(t.error_scan_failed)
       setScreen('selection')
@@ -103,7 +166,6 @@ export default function App() {
 
     if (DEV_MODE) {
       await new Promise((resolve) => setTimeout(resolve, 2000))
-      // In dev mode keep the same mock content but tag the target language
       setResult((prev) => ({
         ...prev,
         diagnosis: { ...prev.diagnosis, language: targetLang },
@@ -145,30 +207,49 @@ export default function App() {
     : <Home {...sharedProps} />
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <>
-            {mainContent}
-            {screen === 'loading' && <LoadingScreen t={t} loadingStep={loadingStep} />}
-          </>
-        }
-      />
-      <Route
-        path="/result"
-        element={
-          <Result
-            t={t}
-            lang={lang}
-            result={result}
-            imagePreview={imagePreview}
-            translating={translating}
-            translateResult={translateResult}
-            resetAll={resetAll}
-          />
-        }
-      />
-    </Routes>
+    <AppShell appColumnRef={appColumnRef} t={t}>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <>
+              {mainContent}
+              {screen === 'loading' && <LoadingScreen t={t} loadingStep={loadingStep} />}
+            </>
+          }
+        />
+        <Route
+          path="/history"
+          element={<HistoryPage t={t} viewHistoryEntry={viewHistoryEntry} />}
+        />
+        <Route
+          path="/settings"
+          element={
+            <SettingsPage
+              t={t}
+              lang={lang}
+              setLang={setLang}
+              theme={theme}
+              setTheme={setTheme}
+            />
+          }
+        />
+        <Route
+          path="/result"
+          element={
+            <Result
+              t={t}
+              lang={lang}
+              result={result}
+              imagePreview={imagePreview}
+              translating={translating}
+              translateResult={translateResult}
+              resetAll={resetAll}
+            />
+          }
+        />
+      </Routes>
+      <BottomNav t={t} />
+    </AppShell>
   )
 }
