@@ -10,10 +10,38 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
+import sys
 from pathlib import Path
+
 from decouple import config
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Repo root (parent of Backend/) so `import integration` works.
+REPO_ROOT = BASE_DIR.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+
+def _sync_integration_env() -> None:
+    """Map Django .env names to variables read by ``integration.config``."""
+    if not os.environ.get('PLANT_ID_API_KEY'):
+        v = config('PLANT_DETECTION_API_KEY', default='')
+        if v:
+            os.environ['PLANT_ID_API_KEY'] = v
+    if not os.environ.get('ANTHROPIC_API_KEY'):
+        v = config('CLAUDE_API_KEY', default='')
+        if v:
+            os.environ['ANTHROPIC_API_KEY'] = v
+    if not os.environ.get('KHAYA_API_TOKEN'):
+        v = config('KHAYA_API_TOKEN', default='')
+        if v:
+            os.environ['KHAYA_API_TOKEN'] = v
+
+
+_sync_integration_env()
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -46,6 +74,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'core',
     'rest_framework',
     'drf_spectacular',
@@ -53,6 +82,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -130,7 +160,25 @@ STATIC_URL = 'static/'
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': [],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
 }
+
+# SPA (Vite) on another origin — comma-separated in .env, or defaults below.
+_cors_origins = config('CORS_ALLOWED_ORIGINS', default='')
+if _cors_origins.strip():
+    CORS_ALLOWED_ORIGINS = [
+        o.strip() for o in _cors_origins.split(',') if o.strip()
+    ]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+    ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'AgroSense API',

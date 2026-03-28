@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -96,3 +97,79 @@ class IdentifyPlantTests(TestCase):
         r.reason = ''
         r.headers = {}
         return r
+
+
+class AgroSenseApiTests(TestCase):
+    """App routes used by agrofrontend (integration.services is patched — no live APIs)."""
+
+    @patch('integration.services.identify_plant')
+    def test_api_scan_returns_candidates(self, mock_identify):
+        mock_identify.return_value = [
+            {
+                'name': 'Solanum lycopersicum',
+                'common_name': 'Tomato',
+                'confidence': 0.94,
+                'image_url': 'https://example.com/t.jpg',
+            }
+        ]
+        client = APIClient()
+        image = SimpleUploadedFile(
+            'leaf.jpg', b'\xff\xd8\xff\xe0', content_type='image/jpeg'
+        )
+        response = client.post('/api/scan/', {'image': image}, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('candidates', response.data)
+        self.assertEqual(len(response.data['candidates']), 1)
+
+    def test_api_scan_requires_image(self):
+        client = APIClient()
+        response = client.post('/api/scan/', {}, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch('integration.services.compose_confirm')
+    def test_api_confirm_returns_payload(self, mock_compose):
+        mock_compose.return_value = {
+            'plant': {
+                'name': 'Solanum lycopersicum',
+                'common_name': 'Tomato',
+                'confidence': 0.94,
+            },
+            'health': {
+                'status': 'healthy',
+                'disease_name': None,
+                'disease_type': None,
+                'confidence': 0.92,
+            },
+            'diagnosis': {
+                'summary': 'Looks healthy.',
+                'steps': ['Water at the base.'],
+                'language': 'en',
+            },
+        }
+        client = APIClient()
+        image = SimpleUploadedFile(
+            'leaf.jpg', b'\xff\xd8\xff\xe0', content_type='image/jpeg'
+        )
+        response = client.post(
+            '/api/confirm/',
+            {
+                'image': image,
+                'plant_name': 'Tomato',
+                'language': 'en',
+            },
+            format='multipart',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['plant']['common_name'], 'Tomato')
+
+    def test_api_confirm_requires_plant_name(self):
+        client = APIClient()
+        image = SimpleUploadedFile(
+            'leaf.jpg', b'\xff\xd8\xff\xe0', content_type='image/jpeg'
+        )
+        response = client.post(
+            '/api/confirm/',
+            {'image': image},
+            format='multipart',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

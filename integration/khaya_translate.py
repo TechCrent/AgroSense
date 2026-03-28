@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import time
 from typing import Final
@@ -143,8 +144,21 @@ def translate_diagnosis(diagnosis: DiagnosisDict, target_lang: str) -> Diagnosis
     """
     Translate ``summary`` and each ``steps`` entry; preserve list order and length.
     ``language`` on the result is set to ``target_lang``.
+
+    If ``KHAYA_API_TOKEN`` is missing or ``target_lang`` has no Khaya mapping
+    (many UI locales are not wired yet), returns English text with ``language`` ``en``
+    so the health/confirm pipeline still succeeds.
     """
     if target_lang == "en":
+        return {
+            "summary": diagnosis["summary"],
+            "steps": list(diagnosis["steps"]),
+            "language": "en",
+        }
+
+    khaya_target = FRONTEND_TO_KHAYA_TARGET.get(target_lang)
+    token = os.environ.get("KHAYA_API_TOKEN", "").strip()
+    if not token or not khaya_target:
         return {
             "summary": diagnosis["summary"],
             "steps": list(diagnosis["steps"]),
