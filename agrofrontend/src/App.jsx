@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { useLocale } from './hooks/useLocale.js'
-import { scanPlant, confirmPlant } from './api.js'
+import { getApiErrorMessage, scanPlant, confirmPlant } from './api.js'
 import { DEV_MODE, MOCK_CANDIDATES, MOCK_RESULT_INFECTED } from './mockData.js'
 import Home from './pages/Home.jsx'
 import SelectionScreen from './pages/SelectionScreen.jsx'
@@ -113,9 +113,14 @@ export default function App() {
 
     try {
       const { data } = await scanPlant(imageFile)
-      const list = data.candidates
+      const list = data?.candidates
+      if (!Array.isArray(list)) {
+        setError('Server returned an unexpected response. Check Django logs.')
+        setScreen('upload')
+        return
+      }
 
-      if (!list || list.length === 0) {
+      if (list.length === 0) {
         setError(t.error_no_results)
         setScreen('upload')
         return
@@ -129,8 +134,8 @@ export default function App() {
         setCandidates(list)
         setScreen('selection')
       }
-    } catch {
-      setError(t.error_scan_failed)
+    } catch (err) {
+      setError(getApiErrorMessage(err, t.error_scan_failed))
       setScreen('upload')
     }
   }
@@ -157,8 +162,8 @@ export default function App() {
       saveToHistory(data, imagePreview, lang)
       setScreen('result')
       navigate('/result')
-    } catch {
-      setError(t.error_scan_failed)
+    } catch (err) {
+      setError(getApiErrorMessage(err, t.error_scan_failed))
       setScreen('selection')
     }
   }
