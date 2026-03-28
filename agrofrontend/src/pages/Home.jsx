@@ -71,7 +71,7 @@ export default function Home({
 
         {error && (
           <div className="px-5 mt-3">
-            <ErrorMessage message={error} onDismiss={() => setError(null)} />
+            <ErrorMessage t={t} message={error} onDismiss={() => setError(null)} />
           </div>
         )}
 

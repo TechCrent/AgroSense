@@ -48,8 +48,22 @@ export function LocaleProvider({ children }) {
   const [lang, setLangState] = useState(readLanguageFromStorage)
 
   const setLang = useCallback((next) => {
+    if (!next || !locales[next]) return
     setLangState(next)
+    try {
+      const defaults = { language: 'en', theme: 'light', notifications: true }
+      const raw = localStorage.getItem(SETTINGS_KEY)
+      const base = raw ? { ...defaults, ...JSON.parse(raw) } : { ...defaults }
+      base.language = next
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(base))
+    } catch {
+      /* ignore */
+    }
   }, [])
+
+  useEffect(() => {
+    document.documentElement.lang = lang
+  }, [lang])
 
   useEffect(() => {
     const onStorage = (e) => {

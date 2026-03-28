@@ -21,7 +21,7 @@ export default function SideNav({ t }) {
   return (
     <nav
       className="hidden h-screen w-[72px] shrink-0 flex-col items-center gap-1 border-r border-ag-border bg-ag-surface px-3 py-6 dark:border-[#2a3d34] dark:bg-[#141c19] md:flex lg:w-[220px] lg:items-start lg:px-4"
-      aria-label="Main navigation"
+      aria-label={t.nav_aria_main}
     >
       <div className="mb-8 flex items-center gap-3 px-2 lg:px-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2D6A4F] to-[#52B788] shadow-sm">
