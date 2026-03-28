@@ -11,19 +11,23 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
-
+from decouple import config 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-p0)gd2t@6q%b^hf!v@p%+7ka25+hpvkyhz_a2bvm3yu-zdw3dm'
+SECRET_KEY = config('SECRET_KEY')
+ANTHROPIC_API_KEY = config('CLAUDE_API_KEY')
+PLANT_DETECTION_API_KEY = config('PLANT_DETECTION_API_KEY')
+PLANT_API_URL= config('PLANT_API_URL')
+PLANT_HEALTH_API_KEY = config('PLANTHEALTH_API_KEY')
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)    
 
 ALLOWED_HOSTS = []
 
@@ -37,6 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'core',
+    'rest_framework'
 ]
 
 MIDDLEWARE = [
