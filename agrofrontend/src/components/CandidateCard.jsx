@@ -1,60 +1,80 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Leaf, Check } from 'lucide-react'
+import ConfidenceBar from './ConfidenceBar.jsx'
 
-function confidenceColor(confidence) {
-  if (confidence > 0.80) return 'bg-[#52B788]'
-  if (confidence >= 0.50) return 'bg-[#F4A261]'
-  return 'bg-[#9CA3AF]'
-}
-
-export default function CandidateCard({ candidate, isSelected, onSelect }) {
+export default function CandidateCard({ candidate, isSelected, onSelect, index = 0 }) {
   const [imgError, setImgError] = useState(false)
+  const [bounce, setBounce] = useState(false)
+
+  useEffect(() => {
+    if (!isSelected) return
+    setBounce(true)
+    const id = setTimeout(() => setBounce(false), 200)
+    return () => clearTimeout(id)
+  }, [isSelected])
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
+      style={{
+        animationDelay: `${index * 80}ms`,
+        animationFillMode: 'forwards',
+      }}
       className={`
-        relative rounded-2xl border-2 p-3 cursor-pointer
-        transition-all duration-200 flex items-center gap-3
+        opacity-0 animate-fade-up bg-ag-surface rounded-3xl p-5 flex gap-4 items-center
+        border-2 transition-all duration-200 cursor-pointer
+        shadow-[0_2px_16px_rgba(0,0,0,0.06)]
+        hover:shadow-md hover:-translate-y-0.5 hover:border-ag-green-300
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-ag-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#141c19]
+        active:scale-[0.98]
+        dark:bg-[#141c19]
+        ${bounce ? 'scale-[1.02]' : 'scale-100'}
         ${isSelected
-          ? 'bg-[#F0FFF4] border-[#2D6A4F] shadow-md'
-          : 'bg-white border-[#D8E8DF] hover:border-[#52B788] hover:shadow-md'
+          ? 'border-ag-green-700 bg-ag-green-50 shadow-[0_4px_20px_rgba(45,106,79,0.2)] dark:border-ag-green-500 dark:bg-[#1a2e24]'
+          : 'border-transparent hover:border-ag-green-300 dark:hover:border-[#3d8f6c]'
         }
       `}
     >
-      {isSelected && (
-        <div className="absolute top-2 right-2 bg-[#2D6A4F] text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
-          ✓
-        </div>
-      )}
+      <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 bg-ag-green-50 dark:bg-[#1a2e24]">
+        {imgError ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <Leaf size={28} color="#95D5B2" strokeWidth={1.5} />
+          </div>
+        ) : (
+          <img
+            src={candidate.image_url}
+            alt={candidate.common_name}
+            className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        )}
+      </div>
 
-      {/* Plant image — smaller on mobile, larger on sm+ */}
-      {imgError ? (
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-[#F0FFF4] flex items-center justify-center text-3xl flex-shrink-0">
-          🌿
-        </div>
-      ) : (
-        <img
-          src={candidate.image_url}
-          alt={candidate.common_name}
-          className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover flex-shrink-0"
-          onError={() => setImgError(true)}
-        />
-      )}
-
-      {/* Names */}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-[#1B1B1B] text-base leading-tight truncate">
+        <p className="font-bold text-ag-text-1 text-base leading-tight dark:text-[#e8ece9]">
           {candidate.common_name}
         </p>
-        <p className="text-sm italic text-[#555F61] mt-0.5 line-clamp-2">
+        <p className="text-xs italic text-ag-text-3 mt-0.5 truncate">
           {candidate.name}
         </p>
+        <div className="mt-3">
+          <ConfidenceBar confidence={candidate.confidence} />
+        </div>
       </div>
 
-      {/* Confidence badge */}
-      <div className={`${confidenceColor(candidate.confidence)} rounded-full px-3 py-1 text-xs font-bold text-white flex-shrink-0`}>
-        {Math.round(candidate.confidence * 100)}%
-      </div>
+      {isSelected && (
+        <div className="w-7 h-7 rounded-full bg-ag-green-700 flex items-center justify-center flex-shrink-0 animate-scale-in-ui">
+          <Check size={14} color="#FFFFFF" strokeWidth={3} />
+        </div>
+      )}
     </div>
   )
 }
