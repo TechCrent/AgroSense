@@ -1,9 +1,21 @@
 import axios from 'axios'
 
+function apiBaseUrl() {
+  const raw = import.meta.env.VITE_API_BASE_URL
+  if (raw == null || typeof raw !== 'string') return ''
+  return raw.trim().replace(/\/+$/, '')
+}
+
 /** Human-readable message for UI (DRF `detail`, network, etc.). */
 export function getApiErrorMessage(error, fallback) {
   if (!error) return fallback
   if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+    if (import.meta.env.PROD) {
+      const hasBase = Boolean(apiBaseUrl())
+      return hasBase
+        ? 'Cannot reach the API (CORS, wrong URL, or backend down). Check Render logs; free tier cold starts can take 30–60s. Ensure CORS_ALLOWED_ORIGINS on Render matches this site’s exact https origin (including preview URLs).'
+        : 'Cannot reach the API. For direct calls to Render, set VITE_API_BASE_URL in Vercel (Production + Preview if you use previews), redeploy, and confirm the built JS contains your backend URL. Or rely on /api rewrites in the repo root vercel.json.'
+    }
     return 'Cannot reach the server. Start Django in Backend: pipenv run python manage.py runserver (port 8000).'
   }
   const status = error.response?.status
@@ -22,8 +34,9 @@ export function getApiErrorMessage(error, fallback) {
 
 const api = axios.create({
   // Empty baseURL: browser → Vite dev server → proxy `/api` → Django (see vite.config.js).
-  // Or set VITE_API_BASE_URL to your API origin (e.g. http://127.0.0.1:8000).
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
+  // Production on Vercel: same-origin /api → rewrites in repo root vercel.json (monorepo) or agrofrontend/vercel.json.
+  // Or set VITE_API_BASE_URL to your API origin (build-time); trimmed, trailing slashes stripped.
+  baseURL: apiBaseUrl(),
 })
 
 export const scanPlant = (imageFile) => {
