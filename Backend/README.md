@@ -1,6 +1,7 @@
 # AgroSense — Django API
 
 - **Local setup, env vars, verification:** [../docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md)
+- **Render (production API):** [../docs/DEPLOYMENT.md](../docs/DEPLOYMENT.md)
 
 Install dependencies:
 
