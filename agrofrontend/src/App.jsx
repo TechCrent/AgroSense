@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
 import { useLocale } from './hooks/useLocale.js'
 import { scanPlant, confirmPlant } from './api.js'
 import { DEV_MODE, MOCK_CANDIDATES, MOCK_RESULT_INFECTED } from './mockData.js'
 import Home from './pages/Home.jsx'
+import SelectionScreen from './pages/SelectionScreen.jsx'
 import Result from './pages/Result.jsx'
 
 export default function App() {
@@ -95,10 +95,9 @@ export default function App() {
     handleConfirm,
   }
 
-  return (
-    <Routes>
-      <Route path="/" element={<Home {...sharedProps} />} />
-      <Route path="/result" element={<Result {...sharedProps} />} />
-    </Routes>
-  )
+  if (screen === 'selection') return <SelectionScreen {...sharedProps} />
+  if (screen === 'loading')   return <div className="min-h-screen bg-[#F8FFF9] flex items-center justify-center text-[#2D6A4F] text-lg font-medium">Loading...</div>
+  if (screen === 'result')    return <Result {...sharedProps} />
+
+  return <Home {...sharedProps} />
 }
