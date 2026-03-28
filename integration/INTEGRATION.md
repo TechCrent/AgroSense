@@ -1,5 +1,7 @@
 # AgroSense integration layer
 
+**Run Django + the React app locally:** [../docs/DEVELOPMENT.md](../docs/DEVELOPMENT.md)
+
 Python module for **Plant.id** (identify + health), **Anthropic Claude** (diagnosis copy), and **Khaya / Lelapa Vulavula** (translation). Used by Django (`/api/scan/`, `/api/confirm/`), the optional FastAPI dev server, and smoke tests.
 
 ## Setup

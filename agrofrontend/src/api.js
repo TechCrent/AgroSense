@@ -11,9 +11,8 @@ export function getApiErrorMessage(error, fallback) {
   if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
     if (import.meta.env.PROD) {
       return (
-        'Cannot reach the API from production. Set VITE_API_BASE_URL in Vercel (Project → Settings → Environment Variables) ' +
-        'to your Render backend URL, e.g. https://your-service.onrender.com with no trailing slash, then redeploy the frontend. ' +
-        'On Render, set CORS_ALLOWED_ORIGINS to your Vercel https://… URL. If the first request is slow, the free Render tier may be waking the service.'
+        'Cannot reach the API. Set VITE_API_BASE_URL to your deployed API origin when building the app, ' +
+        'and ensure the backend allows this site in CORS (CORS_ALLOWED_ORIGINS). Redeploy after changing env.'
       )
     }
     return (
@@ -36,7 +35,7 @@ export function getApiErrorMessage(error, fallback) {
 }
 
 const api = axios.create({
-  // Dev: leave empty → Vite proxies /api → Django (vite.config.js). Prod: must set VITE_API_BASE_URL on Vercel to Render origin.
+  // Dev: leave empty → Vite proxies /api → Django (vite.config.js). Prod: set VITE_API_BASE_URL to the API origin.
   baseURL: apiBase,
 })
 
@@ -44,7 +43,7 @@ api.interceptors.request.use((config) => {
   if (import.meta.env.PROD && !apiBase) {
     return Promise.reject(
       new Error(
-        'VITE_API_BASE_URL is not set. In Vercel → Environment Variables, add VITE_API_BASE_URL=https://your-backend.onrender.com (no trailing slash) and redeploy.'
+        'VITE_API_BASE_URL is not set. Configure it for production builds (https API origin, no trailing slash) and rebuild.'
       )
     )
   }
