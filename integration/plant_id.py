@@ -45,6 +45,31 @@ def _plant_id_headers() -> dict[str, str]:
     return {"Api-Key": get_plant_id_key()}
 
 
+def _require_ok_response(r: httpx.Response, label: str = "Plant.id") -> None:
+    """Turn HTTP errors into ``ValueError`` so Django can return ``detail`` to the client."""
+    try:
+        r.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        msg = ""
+        try:
+            j = r.json()
+            if isinstance(j, dict):
+                msg = str(
+                    j.get("message")
+                    or j.get("detail")
+                    or j.get("error")
+                    or j.get("title")
+                    or ""
+                )
+        except Exception:
+            pass
+        if not msg:
+            msg = (r.text or "").strip()[:400]
+        raise ValueError(
+            f"{label} HTTP {r.status_code}: {msg or r.reason_phrase}"
+        ) from e
+
+
 def _first_similar_url(suggestion: dict[str, Any]) -> str | None:
     sims = suggestion.get("similar_images") or []
     if not sims:
@@ -69,21 +94,26 @@ def identify_plant(image_base64: str) -> list[PlantCandidate]:
     Each item: name (scientific), common_name, confidence (0–1), image_url (HTTPS or placeholder).
     """
     b64 = normalize_base64(image_base64)
-    # Validate base64
-    base64.b64decode(b64, validate=True)
+    try:
+        base64.b64decode(b64, validate=True)
+    except Exception as e:
+        raise ValueError("Invalid image data (base64).") from e
 
     params = {"details": "url,common_names,similar_images"}
     body = {"images": [b64]}
 
-    with httpx.Client(timeout=120.0) as client:
-        r = client.post(
-            PLANT_ID_IDENTIFICATION_URL,
-            params=params,
-            headers=_plant_id_headers(),
-            json=body,
-        )
-        r.raise_for_status()
-        data = r.json()
+    try:
+        with httpx.Client(timeout=120.0) as client:
+            r = client.post(
+                PLANT_ID_IDENTIFICATION_URL,
+                params=params,
+                headers=_plant_id_headers(),
+                json=body,
+            )
+            _require_ok_response(r, "Plant.id identification")
+            data = r.json()
+    except httpx.RequestError as e:
+        raise ValueError(f"Plant.id identification unreachable: {e}") from e
 
     result = data.get("result") or {}
     if not (result.get("is_plant") or {}).get("binary", True):
@@ -133,20 +163,26 @@ def assess_health(image_base64: str) -> HealthResult:
       when status is not ``healthy``; null when healthy.
     """
     b64 = normalize_base64(image_base64)
-    base64.b64decode(b64, validate=True)
+    try:
+        base64.b64decode(b64, validate=True)
+    except Exception as e:
+        raise ValueError("Invalid image data (base64).") from e
 
     params = {"details": "description,treatment"}
     body = {"images": [b64]}
 
-    with httpx.Client(timeout=120.0) as client:
-        r = client.post(
-            PLANT_ID_HEALTH_URL,
-            params=params,
-            headers=_plant_id_headers(),
-            json=body,
-        )
-        r.raise_for_status()
-        data = r.json()
+    try:
+        with httpx.Client(timeout=120.0) as client:
+            r = client.post(
+                PLANT_ID_HEALTH_URL,
+                params=params,
+                headers=_plant_id_headers(),
+                json=body,
+            )
+            _require_ok_response(r, "Plant.id health")
+            data = r.json()
+    except httpx.RequestError as e:
+        raise ValueError(f"Plant.id health assessment unreachable: {e}") from e
 
     result = data.get("result") or {}
     healthy_block = result.get("is_healthy") or {}
