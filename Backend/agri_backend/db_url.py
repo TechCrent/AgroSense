@@ -13,6 +13,15 @@ def parse_postgres_url(url: str, *, conn_max_age: int = 600) -> dict:
         raise ValueError(
             f'DATABASE_URL must use postgres or postgresql scheme, got {parsed.scheme!r}'
         )
+    hostname = (parsed.hostname or '').lower()
+    if hostname == 'host':
+        raise ValueError(
+            'DATABASE_URL hostname is literally "host" — usually the template placeholder '
+            'was pasted instead of your real Postgres host. In Render: open your PostgreSQL '
+            'database → Connections → copy the full Internal Database URL (hostname looks like '
+            'dpg-xxxxx-a.region-postgres.render.com) and set DATABASE_URL to that.'
+        )
+
     path = (parsed.path or '').lstrip('/')
     database_name = path.split('/')[0] if path else ''
     if not database_name:
