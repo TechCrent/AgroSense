@@ -14,6 +14,7 @@ import os
 import sys
 from pathlib import Path
 
+import dj_database_url
 from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -73,6 +74,16 @@ ALLOWED_HOSTS = [
     if h.strip()
 ]
 
+_csrf_origins = config('CSRF_TRUSTED_ORIGINS', default='')
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() for o in _csrf_origins.split(',') if o.strip()
+]
+
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 
 # Application definition
 
@@ -123,12 +134,18 @@ WSGI_APPLICATION = 'agri_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+_database_url = config('DATABASE_URL', default='')
+if _database_url:
+    DATABASES = {
+        'default': dj_database_url.parse(_database_url, conn_max_age=600),
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation

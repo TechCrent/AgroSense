@@ -5,6 +5,7 @@ from . import agrosense_views, views
 app_name = 'core'
 
 urlpatterns = [
+    path('health/', views.health, name='health'),
     path('api/scan/', agrosense_views.scan, name='api-scan'),
     path('api/confirm/', agrosense_views.confirm, name='api-confirm'),
     path('identify-plant/', views.identify_plant, name='identify-plant'),

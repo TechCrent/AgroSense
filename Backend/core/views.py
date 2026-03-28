@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
@@ -13,6 +14,11 @@ from .services.kindwise import (
     plant_health_assessment,
     plant_identification,
 )
+
+def health(request):
+    """Liveness probe for Render and other platforms."""
+    return HttpResponse('ok', content_type='text/plain')
+
 
 _JSON_EXAMPLE = {
     'images': [
