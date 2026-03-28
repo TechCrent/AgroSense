@@ -1,6 +1,13 @@
 .env
 
+# Django SQLite (local / Render when DATABASE_URL unset)
+db.sqlite3
+*.sqlite3
+
 # Python
 __pycache__/
 *.py[cod]
 *.pyc
+
+# Vercel
+.vercel
