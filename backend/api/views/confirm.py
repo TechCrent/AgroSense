@@ -1,7 +1,7 @@
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
-from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
 from api.clients.http import UpstreamServiceError
@@ -17,14 +17,25 @@ from api.services.orchestrator import confirm_pipeline
         OpenApiExample(
             "Multipart request",
             value={
-                "image": "<binary-file>",
+                "images": "<binary-file>",
                 "plant_name": "Tomato",
                 "language": "en",
                 "scientific_name": "Solanum lycopersicum",
                 "plant_confidence": 0.94,
             },
             request_only=True,
-        )
+        ),
+        OpenApiExample(
+            "JSON base64 request",
+            value={
+                "images": ["data:image/jpg;base64,<base64>"],
+                "plant_name": "Tomato",
+                "language": "en",
+                "scientific_name": "Solanum lycopersicum",
+                "plant_confidence": 0.94,
+            },
+            request_only=True,
+        ),
     ],
     responses={
         200: OpenApiResponse(description="Diagnosis payload"),
@@ -34,22 +45,18 @@ from api.services.orchestrator import confirm_pipeline
     },
 )
 @api_view(["POST"])
-@parser_classes([MultiPartParser, FormParser])
+@parser_classes([MultiPartParser, FormParser, JSONParser])
 def confirm_view(request):
     serializer = ConfirmRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    payload = serializer.validated_data
-    image = payload["image"]
-    image.seek(0)
-
     try:
         return Response(
             confirm_pipeline(
-                image.read(),
-                payload["plant_name"],
-                payload.get("language", "en"),
-                scientific_name=payload.get("scientific_name") or None,
-                plant_confidence=payload.get("plant_confidence"),
+                serializer.validated_data["images"],
+                serializer.validated_data["plant_name"],
+                serializer.validated_data.get("language", "en"),
+                scientific_name=serializer.validated_data.get("scientific_name") or None,
+                plant_confidence=serializer.validated_data.get("plant_confidence"),
             ),
             status=status.HTTP_200_OK,
         )

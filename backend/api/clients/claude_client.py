@@ -1,53 +1,127 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
+import httpx
 from django.conf import settings
 
 from .http import UpstreamServiceError
 
 
-def _strip_fences(text: str) -> str:
-    payload = text.strip()
-    if payload.startswith("```"):
-        first_newline = payload.find("\n")
-        if first_newline != -1:
-            payload = payload[first_newline + 1 :]
-        if "```" in payload:
-            payload = payload[: payload.rfind("```")]
-    return payload.strip()
+def _strip_json_fences(text: str) -> str:
+    t = text.strip()
+    if t.startswith("```"):
+        nl = t.find("\n")
+        if nl != -1:
+            t = t[nl + 1 :]
+        if "```" in t:
+            t = t[: t.rfind("```")]
+    return t.strip()
+
+
+def _parse_diagnosis_json(text: str) -> dict[str, Any]:
+    cleaned = _strip_json_fences(text)
+    data: Any = json.loads(cleaned)
+    if not isinstance(data, dict):
+        raise UpstreamServiceError("Claude output is not a JSON object.", status_code=502)
+    summary = data.get("summary")
+    steps = data.get("steps")
+    if not isinstance(summary, str) or not summary.strip():
+        raise UpstreamServiceError(
+            "Claude JSON missing non-empty string 'summary'.",
+            status_code=502,
+        )
+    if not isinstance(steps, list) or not all(isinstance(s, str) for s in steps):
+        raise UpstreamServiceError(
+            "Claude JSON missing list of string 'steps'.",
+            status_code=502,
+        )
+    return {
+        "summary": summary.strip(),
+        "steps": [s.strip() for s in steps if s.strip()],
+        "language": str(data.get("language") or "en"),
+    }
 
 
 class ClaudeClient:
     def diagnose(self, prompt: str, *, output_language: str = "en") -> dict:
-        from anthropic import Anthropic
-
-        try:
-            client = Anthropic(api_key=settings.CLAUDE_API_KEY)
-            response = client.messages.create(
-                model=settings.ANTHROPIC_MODEL,
-                max_tokens=1600,
-                system=(
-                    "You are an agricultural assistant. "
-                    "Return valid JSON only with keys summary (string) and steps (array of strings)."
-                ),
-                messages=[{"role": "user", "content": prompt}],
+        # OpenRouter key takes precedence; CLAUDE_API_KEY is kept as fallback so existing
+        # local setups don't break immediately.
+        api_key = str(getattr(settings, "OPENROUTER_API_KEY", "") or "").strip()
+        if not api_key:
+            api_key = str(getattr(settings, "CLAUDE_API_KEY", "") or "").strip()
+        if not api_key:
+            raise UpstreamServiceError(
+                "OPENROUTER_API_KEY is not set (fallback CLAUDE_API_KEY also empty).",
+                status_code=503,
             )
-        except Exception as exc:
-            raise UpstreamServiceError(f"Claude API failed: {exc}", status_code=503) from exc
 
-        if not response.content or response.content[0].type != "text":
-            raise UpstreamServiceError("Claude returned no text output.", status_code=502)
-
-        raw = _strip_fences(response.content[0].text)
+        model = str(getattr(settings, "OPENROUTER_MODEL", "") or "").strip() or "openrouter/free"
+        url = (
+            str(getattr(settings, "OPENROUTER_API_URL", "") or "").strip()
+            or "https://openrouter.ai/api/v1/chat/completions"
+        )
+        system = (
+            "You are an agricultural advisory assistant for AgroSense. "
+            "Output must be valid JSON only, with keys summary (string) and steps (array of strings). "
+            "Do not include markdown, code fences, or commentary outside the JSON object."
+        )
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt},
+            ],
+            "max_tokens": 2048,
+        }
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
         try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError as exc:
-            raise UpstreamServiceError("Claude output was not valid JSON.", status_code=502) from exc
+            with httpx.Client(timeout=120.0) as client:
+                response = client.post(url, json=payload, headers=headers)
+                response.raise_for_status()
+                data = response.json()
+        except Exception as exc:
+            extra = getattr(exc, "message", None) or str(exc)
+            raise UpstreamServiceError(
+                f"OpenRouter API failed ({type(exc).__name__}): {extra}. "
+                f"Check OPENROUTER_API_KEY and OPENROUTER_MODEL={model!r}.",
+                status_code=503,
+            ) from exc
 
-        summary = parsed.get("summary")
-        steps = parsed.get("steps")
-        if not isinstance(summary, str) or not isinstance(steps, list):
-            raise UpstreamServiceError("Claude response missing required keys.", status_code=502)
-        clean_steps = [str(step).strip() for step in steps if str(step).strip()]
-        return {"summary": summary.strip(), "steps": clean_steps, "language": output_language}
+        choices = data.get("choices")
+        if not isinstance(choices, list) or not choices:
+            raise UpstreamServiceError(
+                "OpenRouter returned an unexpected response shape (no choices).",
+                status_code=502,
+            )
+        first = choices[0] if isinstance(choices[0], dict) else {}
+        message = first.get("message") if isinstance(first, dict) else {}
+        content = message.get("content") if isinstance(message, dict) else None
+        if isinstance(content, str):
+            raw = content
+        elif isinstance(content, list):
+            parts: list[str] = []
+            for part in content:
+                if isinstance(part, dict):
+                    text = part.get("text")
+                    if isinstance(text, str):
+                        parts.append(text)
+            raw = "\n".join(parts).strip()
+        else:
+            raw = ""
+
+        if not raw:
+            raise UpstreamServiceError("OpenRouter returned empty text content.", status_code=502)
+        try:
+            diagnosis = _parse_diagnosis_json(raw)
+        except json.JSONDecodeError as exc:
+            raise UpstreamServiceError(
+                f"Claude output was not valid diagnosis JSON: {exc}",
+                status_code=502,
+            ) from exc
+        diagnosis["language"] = output_language
+        return diagnosis

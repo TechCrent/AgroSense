@@ -105,8 +105,8 @@ If scan fails with **`getaddrinfo` / errno 11001** or `nslookup api.plant.id` fa
 | Method | Path | Purpose |
 |--------|------|---------|
 | `GET` | `/health/` | Liveness (`ok` plain text) for Render |
-| `POST` | `/api/scan/` | Multipart field `image` → candidates |
-| `POST` | `/api/confirm/` | Multipart: `image`, `plant_name`, `language`; optional `scientific_name`, `plant_confidence` |
+| `POST` | `/api/scan/` | Multipart field `images` (file) → candidates (matches Plant.id `images` array upstream) |
+| `POST` | `/api/confirm/` | Multipart: `images` (file), `plant_name`, `language`; optional `scientific_name`, `plant_confidence` |
 | `GET` | `/api/docs/` | Swagger UI (DRF Spectacular) |
 | `GET` | `/api/schema/` | OpenAPI schema |
 
@@ -116,7 +116,7 @@ If scan fails with **`getaddrinfo` / errno 11001** or `nslookup api.plant.id` fa
 
 ### 4.3 Frontend ↔ backend alignment
 
-- `frontend/src/api.js` calls `/api/scan/` and `/api/confirm/` with `axios` and a **base URL** from `VITE_API_BASE_URL` or same-origin `/api` (Vite dev proxy / Vercel rewrite).
+- `frontend/src/api.js` calls `/api/scan/` and `/api/confirm/` with `axios`, multipart field **`images`**, and a **base URL** from `VITE_API_BASE_URL` or same-origin `/api` (Vite dev proxy / Vercel rewrite).
 - Dev proxy: `frontend/vite.config.js` proxies `/api` to `http://127.0.0.1:8000` by default.
 
 ---

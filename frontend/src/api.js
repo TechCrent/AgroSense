@@ -46,7 +46,7 @@ const api = axios.create({
 
 export const scanPlant = (imageFile) => {
   const form = new FormData()
-  form.append('image', imageFile)
+  form.append('images', imageFile)
   return api.post('/api/scan/', form)
 }
 
@@ -57,7 +57,7 @@ export const scanPlant = (imageFile) => {
  */
 export const confirmPlant = (imageFile, plantName, language, meta = {}) => {
   const form = new FormData()
-  form.append('image', imageFile)
+  form.append('images', imageFile)
   form.append('plant_name', plantName)
   form.append('language', language)
   if (meta.scientificName != null && meta.scientificName !== '') {

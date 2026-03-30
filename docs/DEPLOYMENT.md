@@ -50,8 +50,8 @@ Two frontend API modes are supported:
 After deploy:
 
 - `GET https://<render-host>/health/` returns `ok`
-- `POST https://<render-host>/api/scan/` with multipart image returns `candidates`
-- `POST https://<render-host>/api/confirm/` with multipart image + `plant_name` returns `plant`, `health`, `diagnosis`
+- `POST https://<render-host>/api/scan/` with multipart file field `images` returns `candidates`
+- `POST https://<render-host>/api/confirm/` with multipart `images` + `plant_name` returns `plant`, `health`, `diagnosis`
 
 Local smoke script:
 

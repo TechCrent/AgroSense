@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 from decouple import config
@@ -26,8 +27,31 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 CLAUDE_API_KEY = config('CLAUDE_API_KEY')
 ANTHROPIC_MODEL = config('ANTHROPIC_MODEL', default='claude-3-5-sonnet-20241022')
+OPENROUTER_API_KEY = config('OPENROUTER_API_KEY', default='')
+OPENROUTER_MODEL = config('OPENROUTER_MODEL', default='openrouter/free')
+OPENROUTER_API_URL = config(
+    'OPENROUTER_API_URL',
+    default='https://openrouter.ai/api/v1/chat/completions',
+)
 PLANT_DETECTION_API_KEY = config('PLANT_DETECTION_API_KEY')
 PLANT_API_URL = config('PLANT_API_URL', default='https://api.plant.id/v3')
+
+# Kindwise crop API (legacy `core` routes only — not used by `/api/scan` or `/api/confirm`).
+PLANTHEALTH_API_KEY = config('PLANTHEALTH_API_KEY', default='')
+PLANTHEALTH_API_URL = config(
+    'PLANTHEALTH_API_URL',
+    default='https://crop.kindwise.com/api/v1',
+)
+# Names expected by `core/services/kindwise.py` crop_identification()
+CROP_API_URL = PLANTHEALTH_API_URL
+PLANT_HEALTH_API_KEY = PLANTHEALTH_API_KEY
+
+# Google Gemini (legacy `core` crop advice — `gemini_crop.py`)
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+GEMINI_MODEL = config('GEMINI_MODEL', default='gemini-3-flash-preview')
+GEMINI_API_METHOD = config('GEMINI_API_METHOD', default='streamGenerateContent')
+GEMINI_THINKING_LEVEL = config('GEMINI_THINKING_LEVEL', default='HIGH')
+GEMINI_USE_GOOGLE_SEARCH = config('GEMINI_USE_GOOGLE_SEARCH', default=True, cast=bool)
 
 # Optional: Khaya / Lelapa (translation of diagnosis + locale tooling)
 KHAYA_API_TOKEN = config('KHAYA_API_TOKEN', default='')
@@ -35,6 +59,25 @@ KHAYA_TRANSLATE_URL = config(
     'KHAYA_TRANSLATE_URL',
     default='https://api.lelapa.ai/v1/translate/process',
 )
+
+
+def _sync_integration_env() -> None:
+    """Match legacy integration: expose keys under names some tooling expects in os.environ."""
+    if not os.environ.get('PLANT_ID_API_KEY'):
+        v = (PLANT_DETECTION_API_KEY or '').strip() if PLANT_DETECTION_API_KEY else ''
+        if v:
+            os.environ['PLANT_ID_API_KEY'] = v
+    if not os.environ.get('ANTHROPIC_API_KEY'):
+        v = (CLAUDE_API_KEY or '').strip() if CLAUDE_API_KEY else ''
+        if v:
+            os.environ['ANTHROPIC_API_KEY'] = v
+    if not os.environ.get('KHAYA_API_TOKEN'):
+        v = (KHAYA_API_TOKEN or '').strip() if KHAYA_API_TOKEN else ''
+        if v:
+            os.environ['KHAYA_API_TOKEN'] = v
+
+
+_sync_integration_env()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import os
 import re
 from typing import Any
 from urllib.parse import urlparse
@@ -30,10 +31,52 @@ def _validate_base64(value: str) -> str:
     return b64
 
 
+def _validate_images(images_b64: str | list[str]) -> list[str]:
+    if isinstance(images_b64, str):
+        items = [images_b64]
+    elif isinstance(images_b64, (list, tuple)):
+        items = list(images_b64)
+    else:  # pragma: no cover - defensive
+        items = [str(images_b64)]
+
+    out: list[str] = []
+    for item in items:
+        if item is None:
+            continue
+        out.append(_validate_base64(str(item)))
+
+    if not out:
+        raise UpstreamServiceError("No valid images provided.", status_code=400)
+    return out
+
+
+def _plant_api_key() -> str:
+    """
+    Match legacy ``integration.config.get_plant_id_key()`` resolution.
+
+    If ``PLANT_ID_API_KEY`` is already set in the environment, Django's
+    ``_sync_integration_env`` does not overwrite it — but that key is what the
+    old integration uses. We must prefer it over ``PLANT_DETECTION_API_KEY``
+    from ``.env`` when both differ (otherwise you can see 'no credits' for
+    one key while the old backend still works).
+    """
+    raw = getattr(settings, "PLANT_DETECTION_API_KEY", None)
+    key = str(raw or "").strip()
+    if not key:
+        key = os.environ.get("PLANT_ID_API_KEY", "").strip()
+    if not key:
+        raise UpstreamServiceError(
+            "Plant.id API key missing: set PLANT_DETECTION_API_KEY in backend/.env "
+            "(synced to PLANT_ID_API_KEY) or set PLANT_ID_API_KEY in the environment.",
+            status_code=503,
+        )
+    return key
+
+
 class PlantIdClient:
-    def __init__(self, *, timeout: float = 90.0, retry_policy: RetryPolicy | None = None):
+    def __init__(self, *, timeout: float = 120.0, retry_policy: RetryPolicy | None = None):
         self.timeout = timeout
-        self.retry_policy = retry_policy or RetryPolicy()
+        self.retry_policy = retry_policy or RetryPolicy(attempts=1)
 
     def _post_json(
         self,
@@ -43,7 +86,7 @@ class PlantIdClient:
         params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         url = f"{settings.PLANT_API_URL.rstrip('/')}/{path.lstrip('/')}"
-        headers = {"Api-Key": settings.PLANT_DETECTION_API_KEY}
+        headers = {"Api-Key": _plant_api_key()}
         last_error: Exception | None = None
 
         for _ in range(self.retry_policy.attempts):
@@ -61,6 +104,7 @@ class PlantIdClient:
                             parsed.get("detail")
                             or parsed.get("message")
                             or parsed.get("error")
+                            or parsed.get("title")
                             or ""
                         )
                 except Exception:
@@ -82,12 +126,11 @@ class PlantIdClient:
             status_code=503,
         )
 
-    def identify_plant(self, image_b64: str) -> list[dict[str, Any]]:
-        payload = {"images": [_validate_base64(image_b64)]}
+    def identify_plant(self, images_b64: str | list[str]) -> list[dict[str, Any]]:
+        payload: dict[str, Any] = {"images": _validate_images(images_b64)}
         data = self._post_json(
             "identification",
             payload,
-            params={"details": "url,common_names,similar_images"},
         )
         result = data.get("result") or {}
         if not (result.get("is_plant") or {}).get("binary", True):
@@ -108,11 +151,17 @@ class PlantIdClient:
                 common_name = str(details.get("local_name") or suggestion.get("name") or "")
 
             image_url = None
-            similar_images = suggestion.get("similar_images") or []
-            if similar_images and isinstance(similar_images[0], dict):
-                image_url = similar_images[0].get("url") or similar_images[0].get(
+            similar_images_result = suggestion.get("similar_images") or []
+            if similar_images_result and isinstance(similar_images_result[0], dict):
+                image_url = similar_images_result[0].get("url") or similar_images_result[0].get(
                     "url_small"
                 )
+            if not image_url:
+                wiki = details.get("url")
+                if isinstance(wiki, str) and wiki.startswith("http"):
+                    image_url = wiki
+                elif isinstance(details.get("image"), dict):
+                    image_url = details["image"].get("value")
             image_url = image_url or "https://placehold.co/80x80/2D6A4F/ffffff/png?text=Plant"
 
             out.append(
@@ -125,8 +174,8 @@ class PlantIdClient:
             )
         return out
 
-    def assess_health(self, image_b64: str) -> dict[str, Any]:
-        payload = {"images": [_validate_base64(image_b64)]}
+    def assess_health(self, images_b64: str | list[str]) -> dict[str, Any]:
+        payload: dict[str, Any] = {"images": _validate_images(images_b64)}
         data = self._post_json(
             "health_assessment",
             payload,
@@ -147,12 +196,13 @@ class PlantIdClient:
         ranked.sort(key=lambda x: float(x.get("probability") or 0.0), reverse=True)
         top = ranked[0] if ranked else {}
         details = top.get("details") or {}
+        if not isinstance(details, dict):
+            details = {}
         classification = details.get("classification")
-        disease_type = (
-            str(classification[0])
-            if isinstance(classification, list) and classification
-            else "unknown"
-        )
+        if isinstance(classification, list) and classification:
+            disease_type = str(classification[0])
+        else:
+            disease_type = str(top.get("source") or "unknown")
         confidence = float(top.get("probability") or float(healthy.get("probability") or 0.0))
         return {
             "status": "infected" if confidence >= 0.25 else "at_risk",
