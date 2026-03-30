@@ -9,10 +9,24 @@ function normalizedApiBase() {
 
 const apiBase = normalizedApiBase()
 
-/** Human-readable message for UI (DRF `detail`, network, etc.). */
-export function getApiErrorMessage(error, fallback) {
+/**
+ * Human-readable message for UI (DRF `detail`, network, etc.).
+ * Pass the full locale object `t` from useLocale() so network hints match UI language.
+ */
+export function getApiErrorMessage(error, t) {
+  const fallback =
+    typeof t === 'string'
+      ? t
+      : (t && t.error_scan_failed) || 'Scan failed. Please try again.'
   if (!error) return fallback
   if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+    if (typeof t === 'object' && t !== null) {
+      if (import.meta.env.PROD) {
+        const crossOrigin = Boolean(apiBase)
+        return crossOrigin ? t.error_network_prod_cross_origin : t.error_network_prod_same_origin
+      }
+      return t.error_network_dev
+    }
     if (import.meta.env.PROD) {
       const crossOrigin = Boolean(apiBase)
       return crossOrigin
@@ -46,7 +60,7 @@ const api = axios.create({
 
 export const scanPlant = (imageFile) => {
   const form = new FormData()
-  form.append('image', imageFile)
+  form.append('images', imageFile)
   return api.post('/api/scan/', form)
 }
 
@@ -57,7 +71,7 @@ export const scanPlant = (imageFile) => {
  */
 export const confirmPlant = (imageFile, plantName, language, meta = {}) => {
   const form = new FormData()
-  form.append('image', imageFile)
+  form.append('images', imageFile)
   form.append('plant_name', plantName)
   form.append('language', language)
   if (meta.scientificName != null && meta.scientificName !== '') {

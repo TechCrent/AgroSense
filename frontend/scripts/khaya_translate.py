@@ -26,9 +26,28 @@ if load_dotenv:
     load_dotenv(_REPO_ROOT / ".env")
     load_dotenv(_REPO_ROOT / "backend" / ".env")
 
+GHANA_API_URL = os.environ.get(
+    "API_URL", "https://translation-api.ghananlp.org/v1/translate"
+)
+PRIMARY_API_KEY = os.environ.get("PRIMARY_API_KEY", "").strip()
+SECONDARY_API_KEY = os.environ.get("SECONDARY_API_KEY", "").strip()
 KHAYA_TRANSLATE_URL = os.environ.get(
     "KHAYA_TRANSLATE_URL", "https://api.lelapa.ai/v1/translate/process"
 )
+
+FRONTEND_TO_GHANA_TARGET: Final[dict[str, str]] = {
+    "en": "en",
+    "twi": "tw",
+    "ga": "gaa",
+    "ewe": "ee",
+    "fante": "fat",
+    "dagbani": "dag",
+    "gurene": "gur",
+    "yoruba": "yo",
+    "kikuyu": "ki",
+    "luo": "luo",
+    "kimeru": "mer",
+}
 
 FRONTEND_TO_KHAYA_TARGET: Final[dict[str, str]] = {
     "zu": "zul_Latn",
@@ -95,6 +114,44 @@ def _get_khaya_token() -> str:
     return token
 
 
+def _get_ghana_key() -> str:
+    key = PRIMARY_API_KEY or SECONDARY_API_KEY
+    if not key:
+        raise ValueError("PRIMARY_API_KEY / SECONDARY_API_KEY is not set")
+    return key
+
+
+def _translate_chunk_ghana(
+    text: str,
+    *,
+    target_lang: str,
+    session: httpx.Client | None = None,
+) -> str:
+    headers = {
+        "Content-Type": "application/json",
+        "Ocp-Apim-Subscription-Key": _get_ghana_key(),
+    }
+    payload = {"in": text, "lang": f"en-{target_lang}"}
+    own_client = session is None
+    client = session or httpx.Client(timeout=60.0)
+    try:
+        r = client.post(GHANA_API_URL, headers=headers, json=payload)
+        r.raise_for_status()
+        data = r.json()
+    finally:
+        if own_client:
+            client.close()
+
+    if isinstance(data, str):
+        return data
+    if isinstance(data, dict):
+        for key in ("out", "translatedText", "translation", "translated_text", "text"):
+            v = data.get(key)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+    raise ValueError("Ghana NLP response missing translated text")
+
+
 def _translate_chunk(
     text: str,
     *,
@@ -134,9 +191,13 @@ def translate_text(text: str, target_lang: str, *, delay_s: float = 0.15) -> str
     if target_lang == "en" or not text.strip():
         return text
 
-    khaya_target = FRONTEND_TO_KHAYA_TARGET.get(target_lang)
-    if not khaya_target:
-        raise ValueError(f"Unsupported frontend language code for Khaya: {target_lang!r}")
+    use_ghana = bool(PRIMARY_API_KEY or SECONDARY_API_KEY)
+    if use_ghana:
+        provider_target = FRONTEND_TO_GHANA_TARGET.get(target_lang, target_lang)
+    else:
+        provider_target = FRONTEND_TO_KHAYA_TARGET.get(target_lang)
+        if not provider_target:
+            raise ValueError(f"Unsupported frontend language code for translator: {target_lang!r}")
 
     parts = chunk_text_by_words(text)
     if not parts:
@@ -147,5 +208,8 @@ def translate_text(text: str, target_lang: str, *, delay_s: float = 0.15) -> str
         for i, chunk in enumerate(parts):
             if i > 0 and delay_s > 0:
                 time.sleep(delay_s)
-            out.append(_translate_chunk(chunk, target_lang=khaya_target, session=client))
+            if use_ghana:
+                out.append(_translate_chunk_ghana(chunk, target_lang=provider_target, session=client))
+            else:
+                out.append(_translate_chunk(chunk, target_lang=provider_target, session=client))
     return " ".join(out).strip()

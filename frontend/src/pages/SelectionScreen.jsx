@@ -53,6 +53,7 @@ export default function SelectionScreen({
               isSelected={selectedPlant?.name === candidate.name}
               onSelect={() => setSelectedPlant(candidate)}
               index={index}
+              t={t}
             />
           ))}
         </div>

@@ -115,7 +115,7 @@ export default function App() {
       const { data } = await scanPlant(imageFile)
       const list = data?.candidates
       if (!Array.isArray(list)) {
-        setError('Server returned an unexpected response. Check Django logs.')
+        setError(t.error_unexpected_response)
         setScreen('upload')
         return
       }
@@ -135,7 +135,7 @@ export default function App() {
         setScreen('selection')
       }
     } catch (err) {
-      setError(getApiErrorMessage(err, t.error_scan_failed))
+      setError(getApiErrorMessage(err, t))
       setScreen('upload')
     }
   }
@@ -163,13 +163,14 @@ export default function App() {
       setScreen('result')
       navigate('/result')
     } catch (err) {
-      setError(getApiErrorMessage(err, t.error_scan_failed))
+      setError(getApiErrorMessage(err, t))
       setScreen('selection')
     }
   }
 
   async function translateResult(targetLang) {
     if (!result) return
+    setLang(targetLang)
     setTranslating(true)
 
     if (DEV_MODE) {

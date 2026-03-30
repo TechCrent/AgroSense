@@ -1,4 +1,4 @@
-"""Khaya / Lelapa Vulavula: diagnosis translation (chunked requests)."""
+"""Diagnosis translation client (Ghana NLP preferred; Khaya/Lelapa fallback)."""
 
 from __future__ import annotations
 
@@ -11,7 +11,23 @@ from django.conf import settings
 
 from .http import UpstreamServiceError
 
-# Frontend locale codes (useLocale.js) -> Lelapa target_lang codes.
+# Frontend locale codes -> Ghana NLP language codes (or close aliases).
+# If a code is not found here, we pass the frontend code through as-is.
+FRONTEND_TO_GHANA_TARGET: Final[dict[str, str]] = {
+    "en": "en",
+    "twi": "tw",
+    "ga": "gaa",
+    "ewe": "ee",
+    "fante": "fat",
+    "dagbani": "dag",
+    "gurene": "gur",
+    "yoruba": "yo",
+    "kikuyu": "ki",
+    "luo": "luo",
+    "kimeru": "mer",
+}
+
+# Frontend locale codes -> Lelapa target_lang codes.
 FRONTEND_TO_KHAYA_TARGET: Final[dict[str, str]] = {
     "zu": "zul_Latn",
     "xh": "xho_Latn",
@@ -77,36 +93,71 @@ def chunk_text_by_words(text: str, max_words: int = MAX_WORDS_PER_CHUNK) -> list
     return chunks
 
 
-def _translate_chunk(
+def _parse_ghana_translation(data: object) -> str:
+    if isinstance(data, str):
+        return data
+    if not isinstance(data, dict):
+        raise UpstreamServiceError("Ghana NLP response shape is invalid", status_code=502)
+    for key in ("out", "translatedText", "translation", "translated_text", "text"):
+        v = data.get(key)
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    raise UpstreamServiceError("Ghana NLP response missing translated text", status_code=502)
+
+
+def _translate_chunk_ghana(
+    text: str,
+    *,
+    target_lang: str,
+    session: httpx.Client | None = None,
+) -> str:
+    primary = str(getattr(settings, "PRIMARY_API_KEY", "") or "").strip()
+    secondary = str(getattr(settings, "SECONDARY_API_KEY", "") or "").strip()
+    key = primary or secondary
+    if not key:
+        raise UpstreamServiceError("PRIMARY_API_KEY / SECONDARY_API_KEY is not set", status_code=503)
+    url = str(
+        getattr(settings, "API_URL", "") or "https://translation-api.ghananlp.org/v1/translate"
+    ).strip()
+    headers = {
+        "Ocp-Apim-Subscription-Key": key,
+        "Content-Type": "application/json",
+    }
+    # Ghana NLP expects: {"in": "<text>", "lang": "en-<target>"}.
+    payload = {"in": text, "lang": f"en-{target_lang}"}
+    own_client = session is None
+    client = session or httpx.Client(timeout=60.0)
+    try:
+        r = client.post(str(url), headers=headers, json=payload)
+        r.raise_for_status()
+        data = r.json()
+    finally:
+        if own_client:
+            client.close()
+
+    return _parse_ghana_translation(data)
+
+
+def _translate_chunk_khaya(
     text: str,
     *,
     target_lang: str,
     source_lang: str = SOURCE_LANG_EN,
     session: httpx.Client | None = None,
 ) -> str:
-    token = getattr(settings, "KHAYA_API_TOKEN", "") or ""
-    token = str(token).strip()
+    token = str(getattr(settings, "KHAYA_API_TOKEN", "") or "").strip()
     if not token:
         raise UpstreamServiceError("KHAYA_API_TOKEN is not set", status_code=503)
 
-    url = getattr(
-        settings,
-        "KHAYA_TRANSLATE_URL",
-        "https://api.lelapa.ai/v1/translate/process",
-    )
-    headers = {
-        "Content-Type": "application/json",
-        "X-CLIENT-TOKEN": token,
-    }
-    payload = {
-        "input_text": text,
-        "source_lang": source_lang,
-        "target_lang": target_lang,
-    }
+    url = str(
+        getattr(settings, "KHAYA_TRANSLATE_URL", "https://api.lelapa.ai/v1/translate/process")
+    ).strip()
+    headers = {"Content-Type": "application/json", "X-CLIENT-TOKEN": token}
+    payload = {"input_text": text, "source_lang": source_lang, "target_lang": target_lang}
     own_client = session is None
     client = session or httpx.Client(timeout=60.0)
     try:
-        r = client.post(str(url), headers=headers, json=payload)
+        r = client.post(url, headers=headers, json=payload)
         r.raise_for_status()
         data = r.json()
     finally:
@@ -126,9 +177,16 @@ def translate_text(text: str, target_lang: str, *, delay_s: float = 0.15) -> str
     if target_lang == "en" or not text.strip():
         return text
 
-    khaya_target = FRONTEND_TO_KHAYA_TARGET.get(target_lang)
-    if not khaya_target:
-        raise ValueError(f"Unsupported frontend language code for Khaya: {target_lang!r}")
+    primary = str(getattr(settings, "PRIMARY_API_KEY", "") or "").strip()
+    secondary = str(getattr(settings, "SECONDARY_API_KEY", "") or "").strip()
+    use_ghana = bool(primary or secondary)
+
+    if use_ghana:
+        provider_target = FRONTEND_TO_GHANA_TARGET.get(target_lang, target_lang)
+    else:
+        provider_target = FRONTEND_TO_KHAYA_TARGET.get(target_lang)
+        if not provider_target:
+            raise ValueError(f"Unsupported frontend language code for Khaya: {target_lang!r}")
 
     parts = chunk_text_by_words(text)
     if not parts:
@@ -139,7 +197,10 @@ def translate_text(text: str, target_lang: str, *, delay_s: float = 0.15) -> str
         for i, chunk in enumerate(parts):
             if i > 0 and delay_s > 0:
                 time.sleep(delay_s)
-            out.append(_translate_chunk(chunk, target_lang=khaya_target, session=client))
+            if use_ghana:
+                out.append(_translate_chunk_ghana(chunk, target_lang=provider_target, session=client))
+            else:
+                out.append(_translate_chunk_khaya(chunk, target_lang=provider_target, session=client))
     return " ".join(out).strip()
 
 
@@ -155,17 +216,29 @@ def translate_diagnosis(diagnosis: DiagnosisDict, target_lang: str) -> Diagnosis
             "language": "en",
         }
 
-    khaya_target = FRONTEND_TO_KHAYA_TARGET.get(target_lang)
-    token = (getattr(settings, "KHAYA_API_TOKEN", "") or "").strip()
-    if not token or not khaya_target:
+    primary = str(getattr(settings, "PRIMARY_API_KEY", "") or "").strip()
+    secondary = str(getattr(settings, "SECONDARY_API_KEY", "") or "").strip()
+    khaya_token = str(getattr(settings, "KHAYA_API_TOKEN", "") or "").strip()
+    has_ghana = bool(primary or secondary)
+    has_khaya = bool(khaya_token and FRONTEND_TO_KHAYA_TARGET.get(target_lang))
+
+    if not has_ghana and not has_khaya:
         return {
             "summary": diagnosis["summary"],
             "steps": list(diagnosis["steps"]),
             "language": "en",
         }
 
-    summary_t = translate_text(diagnosis["summary"], target_lang)
-    steps_t = [translate_text(step, target_lang) for step in diagnosis["steps"]]
+    try:
+        summary_t = translate_text(diagnosis["summary"], target_lang)
+        steps_t = [translate_text(step, target_lang) for step in diagnosis["steps"]]
+    except Exception:
+        # Never block the confirm pipeline on optional translation provider failures.
+        return {
+            "summary": diagnosis["summary"],
+            "steps": list(diagnosis["steps"]),
+            "language": "en",
+        }
 
     return {
         "summary": summary_t,

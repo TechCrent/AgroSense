@@ -12,14 +12,14 @@ def run(base_url: str, image_path: str, plant_name: str, language: str) -> None:
         raise SystemExit(f"Image not found: {image_path}")
 
     with image_file.open("rb") as fh:
-        scan_res = requests.post(f"{base_url}/api/scan/", files={"image": fh}, timeout=60)
+        scan_res = requests.post(f"{base_url}/api/scan/", files={"images": fh}, timeout=60)
     print("scan", scan_res.status_code)
     print(scan_res.text[:300])
 
     with image_file.open("rb") as fh:
         confirm_res = requests.post(
             f"{base_url}/api/confirm/",
-            files={"image": fh},
+            files={"images": fh},
             data={"plant_name": plant_name, "language": language},
             timeout=90,
         )

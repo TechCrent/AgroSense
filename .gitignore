@@ -16,3 +16,6 @@ __pycache__/
 
 # Host-specific (optional)
 .vercel
+
+# Local snapshot / reference tree (nested repo, may contain secrets)
+OldCodes/
