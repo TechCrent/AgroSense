@@ -1,5 +1,16 @@
 {
-  "dependencies": {
-    "axios": "^1.14.0"
+  "name": "agrosense",
+  "private": true,
+  "description": "AgroSense monorepo — see docs/DEVELOPMENT.md",
+  "scripts": {
+    "verify": "node scripts/verify-integration.mjs",
+    "verify:py": "python scripts/verify_integration.py",
+    "dev:backend": "cd Backend && python manage.py runserver 127.0.0.1:8000",
+    "dev:frontend": "npm run dev --prefix agrofrontend",
+    "build:frontend": "npm run build --prefix agrofrontend",
+    "lint:frontend": "npm run lint --prefix agrofrontend"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

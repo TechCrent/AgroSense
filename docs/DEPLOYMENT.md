@@ -1,4 +1,4 @@
-# Deploy: Render (backend) + Vercel (frontend)
+# Deploy: Render (API) + Vercel (SPA)
 
 This project now uses a single backend codebase inside `backend/` only.
 

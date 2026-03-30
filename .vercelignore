@@ -1,0 +1,7 @@
+# Shrink Vercel upload — frontend build only needs agrofrontend/ (root vercel.json still applies)
+Backend
+integration
+**/__pycache__
+*.pyc
+*.sqlite3
+db.sqlite3

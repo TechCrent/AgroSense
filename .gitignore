@@ -1,6 +1,9 @@
 .env
 
-# Django SQLite (local / Render when DATABASE_URL unset)
+# Root tooling (npm run verify) — no root node deps
+node_modules/
+
+# Django SQLite (local; or when DATABASE_URL unset)
 db.sqlite3
 *.sqlite3
 
@@ -11,5 +14,5 @@ __pycache__/
 *.py[cod]
 *.pyc
 
-# Vercel
+# Host-specific (optional)
 .vercel
