@@ -6,11 +6,17 @@ from api.services.plant_id import assess_plant_health, identify_plant_candidates
 from api.services.translation import translate_if_needed
 
 API_VERSION = "v1"
+MAX_SCAN_CANDIDATES = 4
 
 
 def scan_pipeline(images_b64: list[str]) -> ScanPayload:
-    candidates = identify_plant_candidates(images_b64)
-    return {"candidates": candidates, "version": API_VERSION}
+    raw = identify_plant_candidates(images_b64)
+    ranked = sorted(
+        raw,
+        key=lambda c: float((c or {}).get("confidence") or 0.0),
+        reverse=True,
+    )[:MAX_SCAN_CANDIDATES]
+    return {"candidates": ranked, "version": API_VERSION}
 
 
 def confirm_pipeline(

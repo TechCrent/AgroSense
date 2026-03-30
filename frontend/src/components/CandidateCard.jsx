@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Leaf, Check } from 'lucide-react'
 import ConfidenceBar from './ConfidenceBar.jsx'
 
-export default function CandidateCard({ candidate, isSelected, onSelect, index = 0 }) {
+export default function CandidateCard({ candidate, isSelected, onSelect, index = 0, t }) {
   const [imgError, setImgError] = useState(false)
   const [bounce, setBounce] = useState(false)
 
@@ -66,7 +66,7 @@ export default function CandidateCard({ candidate, isSelected, onSelect, index =
           {candidate.name}
         </p>
         <div className="mt-3">
-          <ConfidenceBar confidence={candidate.confidence} />
+          <ConfidenceBar confidence={candidate.confidence} label={t?.confidence_label} />
         </div>
       </div>
 

@@ -14,12 +14,22 @@ import TopBar from '../components/TopBar.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
 import ConfidenceBar from '../components/ConfidenceBar.jsx'
 import PrimaryButton from '../components/PrimaryButton.jsx'
+import TranslateBar from '../components/TranslateBar.jsx'
 import { interpolate } from '../i18n/interpolate.js'
 
-export default function Result({ t, result, imagePreview, resetAll, ..._unused }) {
+export default function Result({
+  t,
+  lang,
+  result,
+  imagePreview,
+  resetAll,
+  translating,
+  translateResult,
+}) {
   if (!result) return <Navigate to="/" replace />
 
   const { plant, health, diagnosis } = result
+  const diagnosisLang = diagnosis?.language ?? lang ?? 'en'
   const status = health.status
   const isInfected = status === 'infected'
   const steps = diagnosis.steps ?? []
@@ -72,6 +82,27 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
     <div className="min-h-screen bg-[#F7FAF8] pb-28">
       <TopBar t={t} showLogo title={t.result_diagnosis_title} />
 
+      {translateResult ? (
+        <div className="px-5 pt-3">
+          <TranslateBar
+            t={t}
+            translating={translating}
+            translateResult={translateResult}
+            diagnosisLang={diagnosisLang}
+          />
+        </div>
+      ) : null}
+
+      {translating ? (
+        <div className="flex flex-col items-center justify-center px-6 py-20 gap-4">
+          <div
+            className="w-10 h-10 rounded-full border-[3px] border-[#D8E8DF] border-t-[#2D6A4F] animate-spin"
+            aria-hidden
+          />
+          <p className="text-sm text-[#4A5E54] text-center max-w-xs">{t.result_page_loading}</p>
+        </div>
+      ) : (
+        <>
       <div className="flex gap-2 px-5 pt-3 pb-1">
         {[0, 1, 2].map((i) => (
           <div key={i} className="flex-1 h-1 bg-[#2D6A4F] rounded-full" />
@@ -79,7 +110,7 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
       </div>
 
       {/* Plant identity card */}
-      <div className="mx-5 mt-3 animate-scale-in-ui">
+      <div className="mx-5 mt-3">
         <div className="bg-white rounded-3xl overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.10)]">
           <div className="relative h-52 bg-[#F0FFF4]">
             {imagePreview ? (
@@ -116,10 +147,7 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
 
       {/* Status banner */}
       {status === 'infected' && (
-        <div
-          className="mx-5 mt-3 animate-fade-up"
-          style={{ animationDelay: '80ms', animationFillMode: 'forwards' }}
-        >
+        <div className="mx-5 mt-3">
           <div className="bg-[#FEF0F0] border border-[#FBCACA] rounded-3xl p-5 flex gap-4 items-start">
             <div className="w-11 h-11 rounded-2xl bg-[#FEE2E2] flex items-center justify-center flex-shrink-0">
               <Bug size={20} color="#D94040" />
@@ -133,10 +161,7 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
       )}
 
       {status === 'at_risk' && (
-        <div
-          className="mx-5 mt-3 animate-fade-up"
-          style={{ animationDelay: '80ms', animationFillMode: 'forwards' }}
-        >
+        <div className="mx-5 mt-3">
           <div className="bg-[#FFF5EB] border border-[#FFDBB5] rounded-3xl p-5 flex gap-4 items-start">
             <div className="w-11 h-11 rounded-2xl bg-[#FEE9D1] flex items-center justify-center flex-shrink-0">
               <AlertTriangle size={20} color="#E07B2A" />
@@ -150,10 +175,7 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
       )}
 
       {status === 'healthy' && (
-        <div
-          className="mx-5 mt-3 animate-fade-up"
-          style={{ animationDelay: '80ms', animationFillMode: 'forwards' }}
-        >
+        <div className="mx-5 mt-3">
           <div className="bg-[#EDFAF3] border border-[#A8E6C3] rounded-3xl p-5 flex gap-4 items-start">
             <div className="w-11 h-11 rounded-2xl bg-[#D1F5E3] flex items-center justify-center flex-shrink-0">
               <HeartPulse size={20} color="#2D9E6B" />
@@ -168,10 +190,7 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
 
       {/* Disease detail (infected only) */}
       {isInfected && (
-        <div
-          className="mx-5 mt-3 animate-fade-up"
-          style={{ animationDelay: '160ms', animationFillMode: 'forwards' }}
-        >
+        <div className="mx-5 mt-3">
           <div className="bg-white rounded-3xl p-5 shadow-[0_2px_16px_rgba(0,0,0,0.07)]">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-[#8FA89D] mb-4">
               {t.result_disease_name}
@@ -199,10 +218,7 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
       )}
 
       {/* Description / summary card */}
-      <div
-        className="mx-5 mt-3 animate-fade-up"
-        style={{ animationDelay: '240ms', animationFillMode: 'forwards' }}
-      >
+      <div className="mx-5 mt-3">
         <div className="bg-white rounded-3xl p-5 shadow-[0_2px_16px_rgba(0,0,0,0.07)]">
           <div className="flex items-center gap-2 mb-3">
             <div
@@ -226,10 +242,7 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
 
       {/* Treatment steps (infected) */}
       {isInfected && (
-        <div
-          className="mx-5 mt-3 animate-fade-up"
-          style={{ animationDelay: '320ms', animationFillMode: 'forwards' }}
-        >
+        <div className="mx-5 mt-3">
           <div className="flex items-center gap-3 mb-3 px-1">
             <div className="w-8 h-8 rounded-xl bg-[#2D6A4F] flex items-center justify-center">
               <Stethoscope size={16} color="#FFFFFF" />
@@ -243,11 +256,7 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
             {steps.map((step, index) => (
               <div
                 key={index}
-                className="bg-white rounded-3xl p-5 flex gap-4 shadow-[0_2px_12px_rgba(0,0,0,0.05)] animate-fade-up"
-                style={{
-                  animationDelay: `${320 + index * 80}ms`,
-                  animationFillMode: 'forwards',
-                }}
+                className="bg-white rounded-3xl p-5 flex gap-4 shadow-[0_2px_12px_rgba(0,0,0,0.05)]"
               >
                 <div className="flex-shrink-0 flex flex-col items-center gap-1">
                   <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#2D6A4F] to-[#3A8C66] flex items-center justify-center shadow-sm">
@@ -271,10 +280,7 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
 
       {/* Preventive measures (healthy / at_risk) */}
       {!isInfected && (
-        <div
-          className="mx-5 mt-3 animate-fade-up"
-          style={{ animationDelay: '320ms', animationFillMode: 'forwards' }}
-        >
+        <div className="mx-5 mt-3">
           <div className="flex items-center gap-3 mb-3 px-1">
             <div
               className={`w-8 h-8 rounded-xl flex items-center justify-center ${
@@ -292,11 +298,7 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
             {steps.map((step, index) => (
               <div
                 key={index}
-                className="bg-white rounded-3xl p-5 flex gap-4 shadow-[0_2px_12px_rgba(0,0,0,0.05)] animate-fade-up"
-                style={{
-                  animationDelay: `${320 + index * 80}ms`,
-                  animationFillMode: 'forwards',
-                }}
+                className="bg-white rounded-3xl p-5 flex gap-4 shadow-[0_2px_12px_rgba(0,0,0,0.05)]"
               >
                 <div
                   className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center ${
@@ -319,10 +321,7 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
       )}
 
       {/* Actions */}
-      <div
-        className="mx-5 mt-6 mb-8 space-y-3 animate-fade-up"
-        style={{ animationDelay: '500ms', animationFillMode: 'forwards' }}
-      >
+      <div className="mx-5 mt-6 mb-8 space-y-3">
         <PrimaryButton
           label={t.result_scan_again}
           icon={<ScanLine size={18} color="#FFFFFF" />}
@@ -337,6 +336,8 @@ export default function Result({ t, result, imagePreview, resetAll, ..._unused }
           {t.result_share}
         </button>
       </div>
+        </>
+      )}
     </div>
   )
 }

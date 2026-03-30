@@ -11,7 +11,7 @@ export default function ErrorMessage({ message, onDismiss, t }) {
         type="button"
         onClick={onDismiss}
         className="flex-shrink-0 p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors active:scale-[0.97] min-w-[44px] min-h-[44px] flex items-center justify-center"
-        aria-label={t?.error_dismiss_aria ?? 'Dismiss error'}
+        aria-label={t.error_dismiss_aria}
       >
         <X size={16} color="#D94040" strokeWidth={2} />
       </button>

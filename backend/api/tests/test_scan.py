@@ -52,3 +52,20 @@ class ScanTests(TestCase):
     def test_scan_requires_images(self):
         response = APIClient().post("/api/scan/", {}, format="multipart")
         self.assertEqual(response.status_code, 400)
+
+    @patch("api.services.orchestrator.identify_plant_candidates")
+    def test_scan_returns_at_most_four_candidates_by_confidence(self, mock_identify):
+        mock_identify.return_value = [
+            {"name": "A", "common_name": "Low", "confidence": 0.1, "image_url": "https://x/a"},
+            {"name": "B", "common_name": "Mid", "confidence": 0.5, "image_url": "https://x/b"},
+            {"name": "C", "common_name": "Top", "confidence": 0.99, "image_url": "https://x/c"},
+            {"name": "D", "common_name": "High", "confidence": 0.8, "image_url": "https://x/d"},
+            {"name": "E", "common_name": "X", "confidence": 0.2, "image_url": "https://x/e"},
+            {"name": "F", "common_name": "Y", "confidence": 0.3, "image_url": "https://x/f"},
+        ]
+        image = SimpleUploadedFile("leaf.jpg", b"\xff\xd8\xff\xe0", content_type="image/jpeg")
+        response = APIClient().post("/api/scan/", {"images": image}, format="multipart")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data["candidates"]), 4)
+        names = [c["common_name"] for c in response.data["candidates"]]
+        self.assertEqual(names, ["Top", "High", "Mid", "Y"])

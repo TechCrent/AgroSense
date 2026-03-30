@@ -40,7 +40,9 @@ from api.services.orchestrator import scan_pipeline
         ),
     ],
     responses={
-        200: OpenApiResponse(description="Plant candidates"),
+        200: OpenApiResponse(
+            description="Up to four plant candidates, highest confidence first."
+        ),
         400: OpenApiResponse(description="Missing/invalid images file"),
         502: OpenApiResponse(description="Upstream failure"),
         503: OpenApiResponse(description="Service unavailable"),

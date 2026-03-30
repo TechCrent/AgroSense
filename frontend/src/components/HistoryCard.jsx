@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Leaf, X } from 'lucide-react'
 import StatusBadge from './StatusBadge.jsx'
+import { interpolate } from '../i18n/interpolate.js'
 
 export function formatHistoryTime(isoString, t) {
   const diff = Date.now() - new Date(isoString).getTime()
@@ -8,9 +9,9 @@ export function formatHistoryTime(isoString, t) {
   const hours = Math.floor(diff / 3600000)
   const days = Math.floor(diff / 86400000)
   if (mins < 1) return t.history_time_just_now
-  if (mins < 60) return t.history_time_mins.replace('{{n}}', String(mins))
-  if (hours < 24) return t.history_time_hours.replace('{{n}}', String(hours))
-  return t.history_time_days.replace('{{n}}', String(days))
+  if (mins < 60) return interpolate(t.history_time_mins, { n: String(mins) })
+  if (hours < 24) return interpolate(t.history_time_hours, { n: String(hours) })
+  return interpolate(t.history_time_days, { n: String(days) })
 }
 
 export default function HistoryCard({ entry, t, onDelete, onView }) {

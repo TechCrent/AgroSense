@@ -10,9 +10,7 @@ import {
   Check,
 } from 'lucide-react'
 import { useLocale } from '../hooks/useLocale.js'
-import { langLabel } from '../i18n/langCodes.js'
-
-const RIGHT_PANEL_LANG_CODES = ['en', 'zu', 'xh', 'swh', 'sot', 'afr']
+import { APP_LANG_CODES, langLabel } from '../i18n/langCodes.js'
 
 export default function RightPanel() {
   const { pathname } = useLocation()
@@ -133,8 +131,8 @@ export default function RightPanel() {
         <div className="rounded-3xl bg-ag-surface p-6 shadow-[0_2px_16px_rgba(0,0,0,0.07)] dark:bg-[#141c19]">
           <p className="mb-1 text-sm font-bold text-[#0F1F17] dark:text-[#e8ece9]">{t.rightpanel_supported_langs_title}</p>
           <p className="mb-4 text-xs text-[#8FA89D] dark:text-[#9ca8a3]">{t.rightpanel_supported_langs_sub}</p>
-          <div className="grid grid-cols-2 gap-2">
-            {RIGHT_PANEL_LANG_CODES.map((code) => (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {APP_LANG_CODES.map((code) => (
               <div
                 key={code}
                 className="flex items-center gap-2 rounded-xl bg-[#F7FAF8] px-3 py-2 dark:bg-[#1a2320]"
