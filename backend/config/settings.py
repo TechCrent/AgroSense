@@ -60,6 +60,15 @@ KHAYA_TRANSLATE_URL = config(
     default='https://api.lelapa.ai/v1/translate/process',
 )
 
+# Ghana NLP translation (preferred if API_URL + PRIMARY/SECONDARY key are configured)
+API_URL = config('API_URL', default='https://translation-api.ghananlp.org/v1/translate')
+API_SUPPORTED_LANGUAGES_URL = config(
+    'API_SUPPORTED_LANGUAGES_URL',
+    default='https://translation-api.ghananlp.org/v1/languages',
+)
+PRIMARY_API_KEY = config('PRIMARY_API_KEY', default='')
+SECONDARY_API_KEY = config('SECONDARY_API_KEY', default='')
+
 
 def _sync_integration_env() -> None:
     """Match legacy integration: expose keys under names some tooling expects in os.environ."""

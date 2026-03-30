@@ -21,8 +21,25 @@ def _strip_json_fences(text: str) -> str:
 
 
 def _parse_diagnosis_json(text: str) -> dict[str, Any]:
-    cleaned = _strip_json_fences(text)
-    data: Any = json.loads(cleaned)
+    """
+    Parse the first JSON object only. Models sometimes append commentary after the object,
+    which makes json.loads() fail with 'Extra data'.
+    """
+    cleaned = _strip_json_fences(text).strip()
+    start = cleaned.find("{")
+    if start == -1:
+        raise UpstreamServiceError(
+            "Claude output has no JSON object (missing '{').",
+            status_code=502,
+        )
+    decoder = json.JSONDecoder()
+    try:
+        data, _end = decoder.raw_decode(cleaned, start)
+    except json.JSONDecodeError as exc:
+        raise UpstreamServiceError(
+            f"Claude output was not valid diagnosis JSON: {exc}",
+            status_code=502,
+        ) from exc
     if not isinstance(data, dict):
         raise UpstreamServiceError("Claude output is not a JSON object.", status_code=502)
     summary = data.get("summary")
@@ -116,12 +133,6 @@ class ClaudeClient:
 
         if not raw:
             raise UpstreamServiceError("OpenRouter returned empty text content.", status_code=502)
-        try:
-            diagnosis = _parse_diagnosis_json(raw)
-        except json.JSONDecodeError as exc:
-            raise UpstreamServiceError(
-                f"Claude output was not valid diagnosis JSON: {exc}",
-                status_code=502,
-            ) from exc
+        diagnosis = _parse_diagnosis_json(raw)
         diagnosis["language"] = output_language
         return diagnosis
