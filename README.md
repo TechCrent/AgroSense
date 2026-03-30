@@ -37,6 +37,7 @@ AgroSense/
 │   └── package.json
 ├── docs/
 │   ├── DEPLOYMENT.md        # Render + Vercel, env vars, troubleshooting
+│   ├── LOCAL_DEV_DNS_WINDOWS.md  # hosts-file workaround when DNS fails locally
 │   └── BACKEND_REBUILD_CHECKLIST.md
 ├── render.yaml              # Render blueprint (rootDir: backend)
 ├── vercel.json              # Monorepo: build frontend/, proxy /api → Render
@@ -62,6 +63,27 @@ The former **`integration/`** folder has been **removed**. Its responsibilities 
 | Translation (optional) | Lelapa Khaya API | Diagnosis translation + optional locale file generation |
 | Config | `python-decouple` / `.env` | Backend secrets and toggles |
 | Hosting | Render (API), Vercel (static + rewrites) | Split deployment |
+
+### Local development (Windows virtualenv)
+
+If `python` resolves to **MSYS2 MinGW** (e.g. `C:\msys64\mingw64\bin\python.exe`), `python -m venv .venv` creates a **Unix-style** venv (`bin/` only). There is **no** `Scripts\Activate.ps1`, so PowerShell activation fails.
+
+**Fix:** use the **python.org** install under `%LOCALAPPDATA%\Programs\Python\` (or run the helper script):
+
+```powershell
+cd backend
+powershell -ExecutionPolicy Bypass -File .\setup_venv.ps1
+& .\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+Or one-shot: `& "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe" -m venv .venv` (adjust version folder if needed).
+
+The **`py`** launcher may reference a missing `C:\Program Files\Python313\...`; prefer the `LocalAppData\Programs\Python\...` executable until the launcher is repaired.
+
+### Local development (Windows DNS / Plant.id)
+
+If scan fails with **`getaddrinfo` / errno 11001** or `nslookup api.plant.id` fails on your network, use a **local `hosts` file** mapping for `api.plant.id` (no third‑party DNS on your adapter). Step‑by‑step: [docs/LOCAL_DEV_DNS_WINDOWS.md](docs/LOCAL_DEV_DNS_WINDOWS.md). Optional helper: `backend/scripts/apply_plant_id_hosts.ps1` (run as Administrator; you supply the current IP once).
 
 ---
 

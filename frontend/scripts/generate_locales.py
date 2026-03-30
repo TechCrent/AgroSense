@@ -20,8 +20,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 _SCRIPTS = Path(__file__).resolve().parent
-sys.path.insert(0, str(_SCRIPTS))
-from khaya_translate import translate_text  # noqa: E402
 
 LOCALES_DIR = REPO_ROOT / "frontend" / "src" / "locales"
 EN_FILE = LOCALES_DIR / "en.json"
@@ -73,6 +71,13 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    translate_text = None
+    if not args.dry_run:
+        sys.path.insert(0, str(_SCRIPTS))
+        from khaya_translate import translate_text as _translate  # noqa: E402
+
+        translate_text = _translate
+
     en_data, keys = load_en_keys()
 
     for lang in TARGET_LANGS:
@@ -82,6 +87,7 @@ def main() -> None:
             if args.dry_run:
                 out[k] = src
             else:
+                assert translate_text is not None
                 if i > 0 and args.delay > 0:
                     time.sleep(args.delay)
                 out[k] = translate_text(src, lang)

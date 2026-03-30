@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import re
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 from django.conf import settings
@@ -71,8 +72,14 @@ class PlantIdClient:
                 last_error = exc
                 continue
 
+        base = (settings.PLANT_API_URL or "").strip().strip('"').strip("'")
+        host = urlparse(base).netloc or base or "(not set)"
         raise UpstreamServiceError(
-            f"Plant API unreachable: {last_error}", status_code=503
+            f"Plant API unreachable (host={host!r}): {last_error}. "
+            "Check internet and DNS (Windows 11001 = name not resolved), VPN/firewall, "
+            "and that backend/.env PLANT_API_URL is exactly https://api.plant.id/v3 with no stray quotes. "
+            "Local dev without changing adapter DNS: see docs/LOCAL_DEV_DNS_WINDOWS.md (hosts file).",
+            status_code=503,
         )
 
     def identify_plant(self, image_b64: str) -> list[dict[str, Any]]:

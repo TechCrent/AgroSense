@@ -64,3 +64,4 @@ python backend/scripts/smoke_test.py --image path/to/leaf.jpg --plant-name Tomat
 - `Network Error` in browser: check Render URL in `vercel.json` rewrite and backend logs.
 - CORS failures: backend must include exact Vercel origin in `CORS_ALLOWED_ORIGINS`.
 - HTML returned from `/api/*`: verify Vercel is using repo-root `vercel.json` and rewrite comes before SPA fallback.
+- Local Windows: Plant.id `getaddrinfo` / DNS failures — see [LOCAL_DEV_DNS_WINDOWS.md](LOCAL_DEV_DNS_WINDOWS.md) (hosts file; no adapter DNS change required).
