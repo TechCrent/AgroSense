@@ -1,9 +1,7 @@
-# Render Blueprint — https://render.com/docs/blueprint-spec
-#
-# Web service runs Django from Backend/. After first deploy, add secrets in the dashboard
-# (SECRET_KEY, ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS, API keys — see Backend/.env.example).
-#
-# Database: omit DATABASE_URL for SQLite on the instance, or set Internal URL from Render Postgres.
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Database: SQLite by default — do NOT set DATABASE_URL. Migrations create backend/db.sqlite3 at build time.
+# Optional: add a Render PostgreSQL instance and set DATABASE_URL to its Internal Database URL if you need Postgres.
+# Set secrets: SECRET_KEY, ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS, CSRF_TRUSTED_ORIGINS, API keys (see backend/.env.example).
 
 services:
   - type: web
@@ -11,9 +9,10 @@ services:
     runtime: python
     region: oregon
     plan: free
-    rootDir: Backend
+    rootDir: backend
+    # Use pip here (simplest on Render). If you switch to Pipenv, use pipenv run for migrate + gunicorn — see docs/DEPLOYMENT.md.
     buildCommand: pip install -r requirements.txt && python manage.py migrate --noinput
-    startCommand: gunicorn agri_backend.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 1 --threads 4
     healthCheckPath: /health/
     envVars:
       - key: PYTHON_VERSION
